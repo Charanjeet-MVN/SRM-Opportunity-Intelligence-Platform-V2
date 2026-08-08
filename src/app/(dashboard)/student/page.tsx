@@ -5,7 +5,8 @@ import { getPersonalizedFeedAction } from "@/lib/opportunities/actions";
 import OpportunityCard from "@/components/opportunities/OpportunityCard";
 import AIInsightsBar from "@/components/dashboard/AIInsightsBar";
 import { Compass, Sparkles, User, ShieldCheck, ArrowRight, Bookmark, Calendar } from "lucide-react";
-import { calculateProfileCompleteness } from "@/lib/students/actions";
+import { redirect } from "next/navigation";
+import { calculateProfileCompleteness, isStudentOnboardingCompleted } from "@/lib/students/actions";
 import { StudentProfile } from "@/types";
 
 export default async function StudentDashboardPage() {
@@ -36,6 +37,12 @@ export default async function StudentDashboardPage() {
         updatedAt: data.updated_at,
       };
     }
+  }
+
+  // Check if onboarding is completed
+  const hasOnboarded = await isStudentOnboardingCompleted(studentProfile);
+  if (!hasOnboarded) {
+    redirect("/dashboard/student/onboarding");
   }
 
   const completeness = await calculateProfileCompleteness(studentProfile);

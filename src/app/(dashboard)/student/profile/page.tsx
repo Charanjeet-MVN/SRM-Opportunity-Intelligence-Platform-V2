@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useActionState, useEffect, useState } from "react";
+import Link from "next/link";
 import {
   getStudentProfileAction,
   updateStudentProfileAction,
@@ -119,6 +120,15 @@ export default function StudentProfilePage() {
           <p className="text-xs text-zinc-400">
             Your profile vectors directly inform the Opportunity Scoring Engine to match relevant hackathons, research positions, and placement drives.
           </p>
+          <div className="pt-1">
+            <Link
+              href="/dashboard/student/onboarding"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-purple-500/10 text-purple-300 border border-purple-500/20 text-xs font-medium hover:bg-purple-500/20 transition-all"
+            >
+              <Sparkles className="w-3.5 h-3.5" />
+              <span>Launch Setup Wizard</span>
+            </Link>
+          </div>
         </div>
 
         {/* Profile Completeness Score */}
