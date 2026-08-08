@@ -5,9 +5,11 @@ import Link from "next/link";
 import { getPublicOpportunitiesAction } from "@/lib/opportunities/actions";
 import OpportunityCard from "@/components/opportunities/OpportunityCard";
 import OpportunityCardSkeleton from "@/components/opportunities/OpportunityCardSkeleton";
+import SmartOpportunitySearchBar from "@/components/opportunities/SmartOpportunitySearchBar";
+import { parseSmartSearchQuery, buildFilterOptionsFromParsedQuery, ParsedSearchQuery } from "@/lib/search/queryBuilder";
 import { Opportunity, OpportunityType, LocationType } from "@/types";
 import { DEPARTMENTS } from "@/lib/constants";
-import { Compass, SlidersHorizontal, RefreshCw, Search, Layers, MapPin, Building2, ShieldCheck, Plus } from "lucide-react";
+import { Compass, SlidersHorizontal, RefreshCw, Layers, MapPin, Building2, ShieldCheck, Plus, X, Search, Sparkles } from "lucide-react";
 
 const TYPE_FILTERS: { value: OpportunityType | "all"; label: string }[] = [
   { value: "all", label: "All Opportunities" },
@@ -19,7 +21,7 @@ const TYPE_FILTERS: { value: OpportunityType | "all"; label: string }[] = [
   { value: "bootcamp", label: "Bootcamps" },
   { value: "scholarship", label: "Scholarships" },
   { value: "club_recruitment", label: "Club Recruitments" },
-  { value: "placement_drive", label: "Placement Opportunities" },
+  { value: "placement_drive", label: "Placement Drives" },
   { value: "conference", label: "Conferences" },
 ];
 
@@ -28,29 +30,59 @@ export default function PublicOpportunitiesPage() {
   const [totalCount, setTotalCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
 
-  // Filters state
+  // Search & Filter State
+  const [searchQuery, setSearchQuery] = useState("");
+  const [parsedQuery, setParsedQuery] = useState<ParsedSearchQuery>({ rawQuery: "", cleanedKeywords: "", extractedBadges: [] });
+  
   const [selectedType, setSelectedType] = useState<OpportunityType | "all">("all");
   const [selectedLocation, setSelectedLocation] = useState<LocationType | "all">("all");
   const [selectedDepartment, setSelectedDepartment] = useState<string>("all");
   const [skillFilter, setSkillFilter] = useState<string>("");
   const [sortBy, setSortBy] = useState<"newest" | "closing_soon">("newest");
-  const [searchQuery, setSearchQuery] = useState("");
 
+  // Run real database query on state change
   useEffect(() => {
     setLoading(true);
-    getPublicOpportunitiesAction({
+
+    const baseFilters = {
       type: selectedType === "all" ? undefined : selectedType,
       locationType: selectedLocation === "all" ? undefined : selectedLocation,
       department: selectedDepartment === "all" ? undefined : selectedDepartment,
       skill: skillFilter.trim() || undefined,
-      search: searchQuery || undefined,
       sortBy: sortBy,
-    }).then((res) => {
+    };
+
+    const finalFilters = buildFilterOptionsFromParsedQuery(parsedQuery, baseFilters);
+
+    getPublicOpportunitiesAction(finalFilters).then((res) => {
       setOpportunities(res.opportunities || []);
       setTotalCount(res.total || 0);
       setLoading(false);
     });
-  }, [selectedType, selectedLocation, selectedDepartment, skillFilter, searchQuery, sortBy]);
+  }, [selectedType, selectedLocation, selectedDepartment, skillFilter, searchQuery, parsedQuery, sortBy]);
+
+  const handleSearchChange = (text: string, parsed: ParsedSearchQuery) => {
+    setSearchQuery(text);
+    setParsedQuery(parsed);
+  };
+
+  const handleClearAll = () => {
+    setSearchQuery("");
+    setParsedQuery({ rawQuery: "", cleanedKeywords: "", extractedBadges: [] });
+    setSelectedType("all");
+    setSelectedLocation("all");
+    setSelectedDepartment("all");
+    setSkillFilter("");
+    setSortBy("newest");
+  };
+
+  const hasActiveFilters =
+    Boolean(searchQuery) ||
+    selectedType !== "all" ||
+    selectedLocation !== "all" ||
+    selectedDepartment !== "all" ||
+    Boolean(skillFilter) ||
+    sortBy === "closing_soon";
 
   return (
     <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-purple-500/30">
@@ -89,38 +121,34 @@ export default function PublicOpportunitiesPage() {
         </div>
       </header>
 
-      {/* Main Container */}
+      {/* Main Content Container */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-        {/* Header Title Banner */}
+        {/* Title Header */}
         <div className="space-y-2">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
             <Compass className="w-3.5 h-3.5" />
-            <span>Verified Campus Opportunities</span>
+            <span>Structured Opportunity Discovery</span>
           </div>
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-zinc-100">
             Explore Opportunities
           </h1>
           <p className="text-xs sm:text-sm text-zinc-400 max-w-2xl leading-relaxed">
-            Verified hackathons, internships, research grants, and club recruitments published directly by authorized SRM Institute organizations.
+            Search verified hackathons, internships, research projects, and club recruitments published by official SRM campus organizations.
           </p>
         </div>
 
-        {/* Filter Toolbar & Search */}
+        {/* Intelligent Search Bar & Filter Controls */}
         <div className="space-y-4 p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 backdrop-blur-md">
-          {/* Top Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-3.5 pointer-events-none" />
-            <input
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search opportunities by title, keywords, or description..."
-              className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl bg-zinc-950/80 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/50 transition-all font-sans"
-            />
-          </div>
+          {/* Smart Search Bar */}
+          <SmartOpportunitySearchBar
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onClear={() => handleSearchChange("", { rawQuery: "", cleanedKeywords: "", extractedBadges: [] })}
+            isSearching={loading}
+          />
 
-          {/* Filter Dropdowns Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+          {/* Structured Filter Controls Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs pt-2 border-t border-zinc-800/60">
             {/* Department Filter */}
             <div className="space-y-1">
               <label className="text-[11px] font-mono text-zinc-400 uppercase">Department</label>
@@ -157,13 +185,13 @@ export default function PublicOpportunitiesPage() {
 
             {/* Skill Filter */}
             <div className="space-y-1">
-              <label className="text-[11px] font-mono text-zinc-400 uppercase">Skill Requirement</label>
+              <label className="text-[11px] font-mono text-zinc-400 uppercase">Specific Skill</label>
               <input
                 type="text"
                 value={skillFilter}
                 onChange={(e) => setSkillFilter(e.target.value)}
-                placeholder="Filter by skill (e.g. React)..."
-                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-purple-500"
+                placeholder="e.g. Python, React..."
+                className="w-full px-3 py-2 rounded-xl bg-zinc-950 border border-zinc-800 text-zinc-200 placeholder:text-zinc-600 focus:outline-none focus:ring-1 focus:ring-purple-500 font-mono text-xs"
               />
             </div>
 
@@ -181,8 +209,8 @@ export default function PublicOpportunitiesPage() {
             </div>
           </div>
 
-          {/* Opportunity Type Selectable Chips */}
-          <div className="pt-2 border-t border-zinc-800/60 flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          {/* Type Filter Selectable Chips */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none pt-1">
             {TYPE_FILTERS.map((filter) => (
               <button
                 key={filter.value}
@@ -199,22 +227,21 @@ export default function PublicOpportunitiesPage() {
           </div>
         </div>
 
-        {/* Results Header */}
-        <div className="flex items-center justify-between text-xs font-mono text-zinc-400">
-          <span>Showing {totalCount} Published Opportunities</span>
-          {(selectedType !== "all" || selectedLocation !== "all" || selectedDepartment !== "all" || skillFilter || searchQuery) && (
+        {/* Active Search & Result Count Header */}
+        <div className="flex items-center justify-between text-xs font-mono text-zinc-400 flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="font-bold text-zinc-200">
+              {totalCount} {totalCount === 1 ? "opportunity" : "opportunities"} matching your search
+            </span>
+          </div>
+
+          {hasActiveFilters && (
             <button
-              onClick={() => {
-                setSelectedType("all");
-                setSelectedLocation("all");
-                setSelectedDepartment("all");
-                setSkillFilter("");
-                setSearchQuery("");
-              }}
-              className="text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1 cursor-pointer"
+              onClick={handleClearAll}
+              className="text-purple-400 hover:text-purple-300 font-medium flex items-center gap-1 cursor-pointer transition-colors"
             >
               <RefreshCw className="w-3 h-3" />
-              <span>Clear Filters</span>
+              <span>Reset All Filters</span>
             </button>
           )}
         </div>
@@ -227,40 +254,24 @@ export default function PublicOpportunitiesPage() {
             ))}
           </div>
         ) : opportunities.length === 0 ? (
-          <div className="py-20 px-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-center space-y-4 max-w-md mx-auto">
+          <div className="py-16 px-6 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 text-center space-y-4 max-w-md mx-auto">
             <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-zinc-800 text-zinc-500 flex items-center justify-center mx-auto">
-              <Compass className="w-6 h-6 text-purple-400" />
+              <Search className="w-6 h-6 text-purple-400" />
             </div>
             <div className="space-y-1.5">
-              <h2 className="text-base font-semibold text-zinc-200">No opportunities available yet.</h2>
+              <h2 className="text-base font-semibold text-zinc-200">No opportunities match your search.</h2>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Opportunities will appear here when verified SRM clubs and department leaders publish them.
+                Try removing a filter or searching for another skill, domain, or opportunity category.
               </p>
             </div>
 
             <div className="pt-2 flex items-center justify-center gap-3">
-              {(selectedType !== "all" || selectedLocation !== "all" || selectedDepartment !== "all" || skillFilter || searchQuery) ? (
-                <button
-                  onClick={() => {
-                    setSearchQuery("");
-                    setSelectedType("all");
-                    setSelectedLocation("all");
-                    setSelectedDepartment("all");
-                    setSkillFilter("");
-                  }}
-                  className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs transition-all cursor-pointer"
-                >
-                  Clear Search & Filters
-                </button>
-              ) : (
-                <Link
-                  href="/dashboard/club/opportunities/new"
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-md transition-all flex items-center gap-1.5"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Post First Opportunity</span>
-                </Link>
-              )}
+              <button
+                onClick={handleClearAll}
+                className="px-4 py-2 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-medium text-xs transition-all cursor-pointer"
+              >
+                Clear Search & Filters
+              </button>
             </div>
           </div>
         ) : (
