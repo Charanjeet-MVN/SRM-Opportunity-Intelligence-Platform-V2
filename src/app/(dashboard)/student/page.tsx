@@ -67,7 +67,7 @@ export default async function StudentDashboardPage() {
           </div>
           <h2 className="text-xs font-semibold text-zinc-200">Skill Matrix Vector</h2>
           <p className="text-[11px] text-zinc-400">
-            {studentProfile?.skills?.length || 0} skills active for AI match scoring.
+            {studentProfile?.skills?.length || 0} skills active for vector match scoring.
           </p>
         </Link>
 

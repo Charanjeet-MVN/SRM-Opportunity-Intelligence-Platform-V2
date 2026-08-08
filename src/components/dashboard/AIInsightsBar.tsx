@@ -19,7 +19,7 @@ export default function AIInsightsBar({ profile, opportunities }: AIInsightsBarP
         <div className="space-y-1">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-mono bg-purple-500/10 text-purple-400 border border-purple-500/20">
             <Sparkles className="w-3.5 h-3.5" />
-            AI Intelligence Briefing
+            Personalized Intelligence Briefing
           </div>
           <h2 className="text-lg font-semibold text-zinc-100 tracking-tight">
             {overview.headline}
