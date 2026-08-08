@@ -222,3 +222,29 @@ export async function signOutAction(): Promise<never> {
   await supabase.auth.signOut();
   redirect("/login");
 }
+
+/**
+ * Handles Password Reset Email Request
+ */
+export async function resetPasswordAction(
+  prevState: AuthState | null,
+  formData: FormData
+): Promise<AuthState> {
+  const email = normalizeEmail(formData.get("email") as string);
+
+  if (!email) {
+    return { error: "Please provide your registered email address." };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.resetPasswordForEmail(email);
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    success: true,
+    message: "Password reset link has been sent to your email address.",
+  };
+}
