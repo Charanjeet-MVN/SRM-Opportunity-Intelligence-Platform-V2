@@ -1,10 +1,13 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { createClient } from "@/lib/supabase/server";
 import { getOpportunityBySlugAction } from "@/lib/opportunities/actions";
 import OpportunityTypeBadge from "@/components/opportunities/OpportunityTypeBadge";
 import VerificationBadge from "@/components/clubs/VerificationBadge";
 import BookmarkButton from "@/components/opportunities/BookmarkButton";
+import OpportunityEvaluationSection from "@/components/opportunities/OpportunityEvaluationSection";
+import { StudentProfile } from "@/types";
 import {
   ArrowLeft,
   Calendar,
@@ -46,6 +49,35 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
 
   if (error || !opportunity) {
     notFound();
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  let studentProfile: StudentProfile | null = null;
+
+  if (user) {
+    const { data: prof } = await supabase
+      .from("student_profiles")
+      .select("*")
+      .eq("user_id", user.id)
+      .single();
+
+    if (prof) {
+      studentProfile = {
+        id: prof.id,
+        userId: prof.user_id,
+        fullName: prof.full_name,
+        registerNumber: prof.register_number || undefined,
+        department: prof.department || undefined,
+        yearOfStudy: prof.year_of_study || undefined,
+        skills: prof.skills || [],
+        interests: prof.interests || [],
+        careerGoals: prof.career_goals || undefined,
+        createdAt: prof.created_at,
+        updatedAt: prof.updated_at,
+      };
+    }
   }
 
   const isDeadlinePassed = opportunity.applicationDeadline
@@ -146,6 +178,13 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
             </div>
           </div>
         </div>
+
+        {/* Deterministic Student Profile Evaluation Section */}
+        <OpportunityEvaluationSection
+          opportunity={opportunity}
+          profile={studentProfile}
+          isAuthenticated={Boolean(user)}
+        />
 
         {/* 2-Column Content Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
