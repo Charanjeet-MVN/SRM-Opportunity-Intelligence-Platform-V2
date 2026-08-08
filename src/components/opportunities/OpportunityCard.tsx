@@ -120,7 +120,7 @@ export default function OpportunityCard({
           href={`/opportunities/${opportunity.slug}`}
           className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 font-medium text-xs group-hover:translate-x-0.5 transition-all"
         >
-          <span>Evaluate Fit</span>
+          <span>View Details</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>

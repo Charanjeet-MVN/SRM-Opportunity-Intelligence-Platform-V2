@@ -16,7 +16,10 @@ export interface OpportunityFilterOptions {
   type?: OpportunityType;
   locationType?: LocationType;
   department?: string;
+  skill?: string;
+  year?: number;
   search?: string;
+  sortBy?: "relevance" | "newest" | "closing_soon";
   limit?: number;
   offset?: number;
 }
@@ -145,8 +148,13 @@ export async function getPublicOpportunitiesAction(
         verification_status
       )
     `, { count: "exact" })
-    .eq("status", "published")
-    .order("created_at", { ascending: false });
+    .eq("status", "published");
+
+  if (filters.sortBy === "closing_soon") {
+    query = query.order("application_deadline", { ascending: true, nullsFirst: false });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
 
   if (filters.type) {
     query = query.eq("type", filters.type);
@@ -154,6 +162,18 @@ export async function getPublicOpportunitiesAction(
 
   if (filters.locationType) {
     query = query.eq("location_type", filters.locationType);
+  }
+
+  if (filters.department && filters.department !== "all") {
+    query = query.contains("eligible_departments", [filters.department]);
+  }
+
+  if (filters.skill) {
+    query = query.contains("required_skills", [filters.skill]);
+  }
+
+  if (filters.year) {
+    query = query.contains("eligible_years", [filters.year]);
   }
 
   if (filters.search) {

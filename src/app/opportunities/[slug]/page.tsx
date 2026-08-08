@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getOpportunityBySlugAction } from "@/lib/opportunities/actions";
 import OpportunityTypeBadge from "@/components/opportunities/OpportunityTypeBadge";
 import VerificationBadge from "@/components/clubs/VerificationBadge";
+import BookmarkButton from "@/components/opportunities/BookmarkButton";
 import {
   ArrowLeft,
   Calendar,
@@ -126,20 +127,23 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
               )}
             </div>
 
-            {/* Apply Button CTA */}
-            {opportunity.externalUrl ? (
-              <a
-                href={opportunity.externalUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="py-2.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/25 transition-all flex items-center gap-2"
-              >
-                <span>Apply on Official Portal</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            ) : (
-              <span className="text-xs text-zinc-500 italic">No external application URL specified.</span>
-            )}
+            {/* Apply Button CTA & Save Button */}
+            <div className="flex items-center gap-3">
+              <BookmarkButton opportunityId={opportunity.id} />
+              {opportunity.externalUrl ? (
+                <a
+                  href={opportunity.externalUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="py-2.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/25 transition-all flex items-center gap-2 cursor-pointer"
+                >
+                  <span>Register / Apply</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              ) : (
+                <span className="text-xs text-zinc-500 italic">No external application URL specified.</span>
+              )}
+            </div>
           </div>
         </div>
 
