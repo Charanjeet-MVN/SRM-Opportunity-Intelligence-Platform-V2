@@ -6,7 +6,9 @@ import { getOpportunityBySlugAction } from "@/lib/opportunities/actions";
 import OpportunityTypeBadge from "@/components/opportunities/OpportunityTypeBadge";
 import VerificationBadge from "@/components/clubs/VerificationBadge";
 import BookmarkButton from "@/components/opportunities/BookmarkButton";
+import RegisterApplyButton from "@/components/opportunities/RegisterApplyButton";
 import OpportunityEvaluationSection from "@/components/opportunities/OpportunityEvaluationSection";
+import { isOpportunityRegisteredAction } from "@/lib/engagement/actions";
 import { StudentProfile } from "@/types";
 import {
   ArrowLeft,
@@ -56,7 +58,11 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
 
   let studentProfile: StudentProfile | null = null;
 
+  let isRegistered = false;
+
   if (user) {
+    isRegistered = await isOpportunityRegisteredAction(opportunity.id);
+
     const { data: prof } = await supabase
       .from("student_profiles")
       .select("*")
@@ -162,19 +168,11 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
             {/* Apply Button CTA & Save Button */}
             <div className="flex items-center gap-3">
               <BookmarkButton opportunityId={opportunity.id} />
-              {opportunity.externalUrl ? (
-                <a
-                  href={opportunity.externalUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="py-2.5 px-5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/25 transition-all flex items-center gap-2 cursor-pointer"
-                >
-                  <span>Register / Apply</span>
-                  <ExternalLink className="w-3.5 h-3.5" />
-                </a>
-              ) : (
-                <span className="text-xs text-zinc-500 italic">No external application URL specified.</span>
-              )}
+              <RegisterApplyButton
+                opportunityId={opportunity.id}
+                externalUrl={opportunity.externalUrl}
+                initialIsRegistered={isRegistered}
+              />
             </div>
           </div>
         </div>

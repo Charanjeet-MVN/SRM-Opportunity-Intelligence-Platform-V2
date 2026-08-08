@@ -224,3 +224,132 @@ export async function getStudentTimelineAction(): Promise<{
 
   return { events };
 }
+
+/**
+ * Records student registration intent/status for an opportunity
+ */
+export async function recordRegistrationAction(
+  opportunityId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Authentication required" };
+
+  const { error } = await supabase
+    .from("registrations")
+    .upsert(
+      {
+        user_id: user.id,
+        opportunity_id: opportunityId,
+        status: "registered",
+        registered_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id,opportunity_id" }
+    );
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/dashboard/student/registrations");
+  revalidatePath("/dashboard/student/saved");
+  revalidatePath(`/opportunities`);
+
+  return { success: true };
+}
+
+/**
+ * Fetches all registered opportunities for current student
+ */
+export async function getRegisteredOpportunitiesAction(): Promise<{
+  registeredOpportunities: (Opportunity & { registeredAt: string; registrationStatus: string })[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { registeredOpportunities: [], error: "Not authenticated" };
+
+  const { data, error } = await supabase
+    .from("registrations")
+    .select(`
+      registered_at,
+      status,
+      opportunities (
+        *,
+        clubs (
+          name,
+          logo_url,
+          verification_status
+        )
+      )
+    `)
+    .eq("user_id", user.id)
+    .order("registered_at", { ascending: false });
+
+  if (error) return { registeredOpportunities: [], error: error.message };
+
+  const result = (data || []).map((item: any) => {
+    const opp = item.opportunities;
+    return {
+      id: opp.id,
+      clubId: opp.club_id,
+      createdBy: opp.created_by,
+      title: opp.title,
+      slug: opp.slug,
+      summary: opp.summary || undefined,
+      description: opp.description,
+      type: opp.type,
+      locationType: opp.location_type,
+      locationAddress: opp.location_address || undefined,
+      externalUrl: opp.external_url || undefined,
+      requiredSkills: opp.required_skills || [],
+      eligibleDepartments: opp.eligible_departments || [],
+      eligibleYears: opp.eligible_years || [],
+      maxParticipants: opp.max_participants || undefined,
+      currentParticipants: opp.current_participants || 0,
+      applicationDeadline: opp.application_deadline || undefined,
+      eventStartDate: opp.event_start_date || undefined,
+      eventEndDate: opp.event_end_date || undefined,
+      status: opp.status,
+      createdAt: opp.created_at,
+      updatedAt: opp.updated_at,
+      registeredAt: item.registered_at,
+      registrationStatus: item.status,
+      club: opp.clubs
+        ? {
+            id: opp.club_id,
+            name: opp.clubs.name,
+            slug: "",
+            logoUrl: opp.clubs.logo_url || undefined,
+            verificationStatus: opp.clubs.verification_status,
+            createdAt: "",
+            updatedAt: "",
+          }
+        : undefined,
+    };
+  });
+
+  return { registeredOpportunities: result };
+}
+
+/**
+ * Checks if current student has registered for an opportunity
+ */
+export async function isOpportunityRegisteredAction(
+  opportunityId: string
+): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return false;
+
+  const { data } = await supabase
+    .from("registrations")
+    .select("id")
+    .eq("user_id", user.id)
+    .eq("opportunity_id", opportunityId)
+    .single();
+
+  return !!data;
+}
+
