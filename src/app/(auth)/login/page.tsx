@@ -212,7 +212,7 @@ export default function LoginPage() {
 
         {/* Footer switch to register */}
         <div className="pt-3 text-center border-t border-zinc-800/60 text-xs text-zinc-400 flex flex-col sm:flex-row items-center justify-center gap-1.5">
-          <span>Don't have an account yet?</span>
+          <span>Don&apos;t have an account yet?</span>
           <Link
             href={activeTab === "student" ? "/register" : "/register/club"}
             className="text-indigo-400 hover:text-indigo-300 font-medium underline underline-offset-4 cursor-pointer"

@@ -80,7 +80,7 @@ export default function ClubVerificationPage() {
           </li>
           <li className="flex items-start gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-1.5" />
-            <span>Ensure link permissions are set to <strong>"Anyone with link can view"</strong>.</span>
+            <span>Ensure link permissions are set to <strong>&quot;Anyone with link can view&quot;</strong>.</span>
           </li>
           <li className="flex items-start gap-2">
             <span className="w-1.5 h-1.5 rounded-full bg-blue-400 shrink-0 mt-1.5" />

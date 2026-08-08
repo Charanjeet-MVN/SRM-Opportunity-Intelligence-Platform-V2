@@ -24,7 +24,7 @@ export default function VerifyEmailPage() {
           <span>Waiting for email confirmation...</span>
         </div>
         <p className="text-[11px] text-zinc-500">
-          Didn't receive the email? Check your spam folder or attempt to sign in to trigger a resend link.
+          Didn&apos;t receive the email? Check your spam folder or attempt to sign in to trigger a resend link.
         </p>
       </div>
 

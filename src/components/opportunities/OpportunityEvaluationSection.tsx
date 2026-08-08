@@ -59,7 +59,7 @@ export default function OpportunityEvaluationSection({
         </div>
 
         <div className="p-3.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-xs text-zinc-400 flex items-center justify-between gap-4">
-          <span>"Complete your profile to receive more relevant opportunity insights."</span>
+          <span>&quot;Complete your profile to receive more relevant opportunity insights.&quot;</span>
           <Link
             href="/dashboard/student/onboarding"
             className="px-3.5 py-1.5 rounded-lg bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs shadow-md shadow-purple-600/20 transition-all shrink-0 cursor-pointer flex items-center gap-1.5"
@@ -75,6 +75,7 @@ export default function OpportunityEvaluationSection({
   const relevance: RelevanceScoreResult = calculateOpportunityRelevance(profile, opportunity);
 
   // Determine Match Tier State
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   let matchStatus: { label: string; bg: string; text: string; border: string; icon: any } = {
     label: "Strong Match",
     bg: "bg-emerald-500/10",

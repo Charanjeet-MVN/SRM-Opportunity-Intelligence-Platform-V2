@@ -201,7 +201,7 @@ export default function StudentOpportunityTracker({
                 <div className="space-y-1.5">
                   <h2 className="text-base font-semibold text-zinc-200">Nothing registered yet.</h2>
                   <p className="text-xs text-zinc-400 leading-relaxed">
-                    When you click "Register / Apply" on a verified opportunity, your submission receipt will be tracked here.
+                    When you click &quot;Register / Apply&quot; on a verified opportunity, your submission receipt will be tracked here.
                   </p>
                 </div>
                 <Link

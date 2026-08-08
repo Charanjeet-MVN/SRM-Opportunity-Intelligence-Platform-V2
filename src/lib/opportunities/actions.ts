@@ -60,6 +60,7 @@ export async function createOpportunityAction(
   }
 
   const clubId = memberRecord.club_id;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const clubVerificationStatus = (memberRecord.clubs as any)?.verification_status;
 
   const title = (formData.get("title") as string)?.trim();
@@ -188,6 +189,7 @@ export async function getPublicOpportunitiesAction(
 
   if (error) return { opportunities: [], total: 0, error: error.message };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const opportunities: Opportunity[] = (data || []).map((item: any) => ({
     id: item.id,
     clubId: item.club_id,
@@ -270,7 +272,7 @@ export async function getPersonalizedFeedAction(filters: OpportunityFilterOption
 
   if (error) return { opportunities: [], total: 0, error };
 
-  let ranked = opportunities.map((opp) => ({
+  const ranked = opportunities.map((opp) => ({
     ...opp,
     relevance: calculateOpportunityRelevance(studentProfile, opp),
   }));
@@ -388,6 +390,7 @@ export async function getMyClubOpportunitiesAction(): Promise<{
 
   if (error) return { opportunities: [], error: error.message };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const opportunities: Opportunity[] = (data || []).map((item: any) => ({
     id: item.id,
     clubId: item.club_id,

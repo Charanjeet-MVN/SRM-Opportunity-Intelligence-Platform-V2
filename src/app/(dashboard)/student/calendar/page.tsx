@@ -31,7 +31,7 @@ export default async function StudentCalendarPage() {
           <div className="space-y-1">
             <h2 className="text-sm font-semibold text-zinc-200">No Impending Deadlines</h2>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              You haven't bookmarked any opportunities with active deadlines yet. Browse the opportunity feed to populate your personal timeline.
+              You haven&apos;t bookmarked any opportunities with active deadlines yet. Browse the opportunity feed to populate your personal timeline.
             </p>
           </div>
           <Link

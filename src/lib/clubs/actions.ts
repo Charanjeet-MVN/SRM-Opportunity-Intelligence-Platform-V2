@@ -166,6 +166,7 @@ export async function getPendingVerificationsAction(): Promise<{
 
   if (error) return { requests: [], error: error.message };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const requests = (data || []).map((item: any) => ({
     id: item.id,
     clubId: item.club_id,

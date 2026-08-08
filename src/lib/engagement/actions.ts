@@ -88,6 +88,7 @@ export async function getSavedOpportunitiesAction(): Promise<{
 
   if (error) return { savedOpportunities: [], error: error.message };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = (data || []).map((item: any) => {
     const opp = item.opportunities;
     return {
@@ -188,8 +189,10 @@ export async function getStudentTimelineAction(): Promise<{
 
   if (savedError) return { events: [], error: savedError.message };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const events: any[] = [];
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (savedData || []).forEach((item: any) => {
     const opp = item.opportunities;
     if (!opp) return;
@@ -288,6 +291,7 @@ export async function getRegisteredOpportunitiesAction(): Promise<{
 
   if (error) return { registeredOpportunities: [], error: error.message };
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = (data || []).map((item: any) => {
     const opp = item.opportunities;
     return {
