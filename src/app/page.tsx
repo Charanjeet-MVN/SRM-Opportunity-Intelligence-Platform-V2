@@ -1,108 +1,92 @@
 import React from "react";
-import { Compass, ShieldCheck, Sparkles, Database, Layers, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
+import { ArrowUpRight, Compass } from "lucide-react";
+import { LandingHeader } from "@/components/landing/LandingHeader";
+import { HeroVisual } from "@/components/landing/HeroVisual";
+import { ProductValueSection } from "@/components/landing/ProductValueSection";
+import { ProductFlowSection } from "@/components/landing/ProductFlowSection";
+import { TrustSection } from "@/components/landing/TrustSection";
+import { FinalCtaSection } from "@/components/landing/FinalCtaSection";
+import { LandingFooter } from "@/components/landing/LandingFooter";
 
 export default function Home() {
   return (
-    <div className="min-h-screen flex flex-col justify-between p-6 sm:p-12 md:p-16 max-w-5xl mx-auto">
-      {/* Header Navigation */}
-      <header className="flex items-center justify-between border-b border-zinc-800/80 pb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-indigo-600/20 border border-indigo-500/40 flex items-center justify-center text-indigo-400 font-bold text-sm">
-            V2
-          </div>
-          <div>
-            <h1 className="text-sm font-semibold tracking-wide text-zinc-100 uppercase">
-              SRM Opportunity Intelligence Platform
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500/30 selection:text-indigo-200 overflow-x-hidden flex flex-col justify-between font-sans">
+      {/* Sticky Top Header */}
+      <LandingHeader />
+
+      {/* Hero Section */}
+      <main className="flex-1">
+        <section className="relative pt-12 pb-16 md:pt-20 md:pb-24 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          {/* Subtle Radial Glow in Hero */}
+          <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[350px] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none" />
+
+          {/* Hero Content */}
+          <div className="text-center max-w-4xl mx-auto space-y-6 relative z-10">
+            {/* Status / Trust Badge */}
+            <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full text-xs font-medium bg-zinc-900/90 border border-zinc-800 text-zinc-300 shadow-sm backdrop-blur-sm">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-zinc-200">Built for the SRM student ecosystem</span>
+            </div>
+
+            {/* 5-second Value Communication Tagline */}
+            <div className="text-xs font-mono tracking-widest text-indigo-400 uppercase">
+              SRM students finally have one intelligent place to discover and manage opportunities
+            </div>
+
+            {/* Main Headline */}
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-semibold tracking-tight text-zinc-100 leading-[1.12]">
+              Stop Missing the Opportunities <br className="hidden sm:block" />
+              That Move Your Career Forward.
             </h1>
-            <p className="text-xs text-zinc-500 font-mono">System Foundation v2.0.0-alpha</p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Architecture Ready
-          </span>
-        </div>
-      </header>
 
-      {/* Main Vision Banner */}
-      <main className="my-16 space-y-12">
-        <div className="space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-400">
-            <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Opportunity Intelligence System</span>
-          </div>
-
-          <h2 className="text-3xl sm:text-5xl font-semibold tracking-tight text-zinc-100 max-w-3xl leading-tight">
-            Stop scrolling through scattered groups. Discover what actually matters to you.
-          </h2>
-
-          <p className="text-base sm:text-lg text-zinc-400 max-w-2xl font-light leading-relaxed">
-            A database-driven platform bringing clarity to hackathons, research positions, internships, and verified campus opportunities at SRM Institute of Science and Technology.
-          </p>
-        </div>
-
-        {/* Architectural Principles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
-          <div className="p-5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-3">
-            <div className="p-2 w-fit rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-              <Compass className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-semibold text-zinc-200">Personalized Discovery</h3>
-            <p className="text-xs text-zinc-400 leading-normal">
-              Replaces noisy event listings with intelligent relevance scoring based on individual student skill profiles.
+            {/* Supporting Explanation */}
+            <p className="text-base sm:text-lg md:text-xl text-zinc-400 font-light max-w-3xl mx-auto leading-relaxed">
+              SRM Opportunity Intelligence Platform brings verified hackathons, internships, research opportunities, competitions, workshops, scholarships and campus opportunities into one intelligent discovery system.
             </p>
+
+            {/* CTAs */}
+            <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Link
+                href="/opportunities"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-zinc-100 hover:bg-white text-zinc-950 font-semibold transition-colors flex items-center justify-center gap-2 shadow-lg shadow-white/5 active:scale-95 text-sm"
+              >
+                <Compass className="w-4 h-4 text-zinc-700" />
+                <span>Explore Opportunities</span>
+                <ArrowUpRight className="w-4 h-4 text-zinc-500" />
+              </Link>
+              
+              <Link
+                href="/register"
+                className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-300 font-medium hover:bg-zinc-800/80 hover:text-white transition-colors flex items-center justify-center text-sm active:scale-95"
+              >
+                Create Student Account
+              </Link>
+            </div>
           </div>
 
-          <div className="p-5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-3">
-            <div className="p-2 w-fit rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <ShieldCheck className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-semibold text-zinc-200">Strict Trust Model</h3>
-            <p className="text-xs text-zinc-400 leading-normal">
-              Official badges are reserved exclusively for verified SRM clubs through multi-step administrator authentication.
-            </p>
-          </div>
+          {/* Interactive Opportunity Intelligence Visualizer */}
+          <HeroVisual />
+        </section>
 
-          <div className="p-5 rounded-xl bg-zinc-900/60 border border-zinc-800/80 space-y-3">
-            <div className="p-2 w-fit rounded-lg bg-purple-500/10 text-purple-400 border border-purple-500/20">
-              <Database className="w-5 h-5" />
-            </div>
-            <h3 className="text-sm font-semibold text-zinc-200">Database-Driven Metrics</h3>
-            <p className="text-xs text-zinc-400 leading-normal">
-              Zero hardcoded mock statistics or fake listings. Real-time statistics generated exclusively from validated database records.
-            </p>
-          </div>
-        </div>
+        {/* Product Capabilities / Value Blocks */}
+        <ProductValueSection />
 
-        {/* Phase Status Banner */}
-        <div className="p-6 rounded-xl bg-gradient-to-r from-zinc-900 via-zinc-900/80 to-indigo-950/30 border border-zinc-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-semibold text-indigo-400 tracking-wider uppercase">
-              <Layers className="w-3.5 h-3.5" />
-              Phase 1 Completed
-            </div>
-            <p className="text-sm text-zinc-300">
-              Technical foundation, type definitions, and modular V2 architecture established.
-            </p>
-          </div>
-          <div className="text-xs text-zinc-500 font-mono flex items-center gap-1 shrink-0">
-            Task 1 Complete <ArrowUpRight className="w-3.5 h-3.5" />
-          </div>
-        </div>
+        {/* Workflow Progression: DISCOVER -> FILTER -> TRACK -> ACT */}
+        <ProductFlowSection />
+
+        {/* Trust & Database Architecture Section */}
+        <TrustSection />
+
+        {/* Final CTA Section */}
+        <FinalCtaSection />
       </main>
 
       {/* Footer */}
-      <footer className="border-t border-zinc-800/80 pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-zinc-500 gap-4">
-        <p>© {new Date().getFullYear()} SRM Opportunity Intelligence Platform V2</p>
-        <div className="flex items-center gap-4">
-          <span>Supabase Auth Ready</span>
-          <span>•</span>
-          <span>PostgreSQL Architecture</span>
-          <span>•</span>
-          <span>Next.js 15 App Router</span>
-        </div>
-      </footer>
+      <LandingFooter />
     </div>
   );
 }
