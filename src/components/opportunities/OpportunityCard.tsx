@@ -9,7 +9,7 @@ import VerificationBadge from "../clubs/VerificationBadge";
 import AnimatedMatchBadge from "./AnimatedMatchBadge";
 import BookmarkButton from "./BookmarkButton";
 import { RelevanceScoreResult } from "@/lib/relevance/scoring";
-import { Calendar, MapPin, ArrowRight, Clock } from "lucide-react";
+import { MapPin, ArrowRight, Clock } from "lucide-react";
 
 interface OpportunityCardProps {
   opportunity: Opportunity;
@@ -26,17 +26,24 @@ export default function OpportunityCard({
     ? new Date(opportunity.applicationDeadline) < new Date()
     : false;
 
+  const isClosingSoon = opportunity.applicationDeadline && !isDeadlinePassed
+    ? (new Date(opportunity.applicationDeadline).getTime() - new Date().getTime()) < 3 * 24 * 60 * 60 * 1000
+    : false;
+
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
+      transition={{ duration: 0.2, ease: "easeOut" }}
       whileHover={{ y: -3 }}
-      className="group rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-purple-500/40 p-6 flex flex-col justify-between transition-all duration-200 shadow-lg hover:shadow-2xl hover:shadow-purple-500/5 relative"
+      className="group rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-indigo-500/40 p-5 sm:p-6 flex flex-col justify-between transition-all duration-200 shadow-lg hover:shadow-2xl hover:shadow-indigo-950/20 relative overflow-hidden"
     >
-      <div className="space-y-4">
-        {/* Top Header Row */}
-        <div className="flex items-center justify-between gap-3 flex-wrap">
+      {/* Top Subtle Gradient Hover Accent */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/60 transition-all duration-300" />
+
+      <div className="space-y-3.5">
+        {/* Header Badges & Actions */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <OpportunityTypeBadge type={opportunity.type} />
             {relevance && (
@@ -53,27 +60,27 @@ export default function OpportunityCard({
 
         {/* Title & Publisher */}
         <div className="space-y-1">
-          <Link href={`/opportunities/${opportunity.slug}`} className="block group">
-            <h3 className="text-base font-semibold text-zinc-100 group-hover:text-purple-300 transition-colors line-clamp-2 leading-snug">
+          <Link href={`/opportunities/${opportunity.slug}`} className="block group/link">
+            <h3 className="text-base font-semibold text-zinc-100 group-hover/link:text-indigo-300 transition-colors line-clamp-2 leading-snug">
               {opportunity.title}
             </h3>
           </Link>
           {opportunity.club && (
-            <p className="text-xs text-zinc-400 font-medium flex items-center gap-1">
+            <div className="text-xs text-zinc-400 font-medium flex items-center gap-1">
               <span>by</span>
-              <span className="text-zinc-300">{opportunity.club.name}</span>
-            </p>
+              <span className="text-zinc-200 font-medium">{opportunity.club.name}</span>
+            </div>
           )}
         </div>
 
-        {/* Summary */}
+        {/* Summary Description */}
         {opportunity.summary && (
-          <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed">
+          <p className="text-xs text-zinc-400 font-light line-clamp-2 leading-relaxed">
             {opportunity.summary}
           </p>
         )}
 
-        {/* Skill Vector Chips */}
+        {/* Skill Chips */}
         {opportunity.requiredSkills.length > 0 && (
           <div className="flex flex-wrap gap-1.5 pt-1">
             {opportunity.requiredSkills.slice(0, 4).map((skill) => {
@@ -83,8 +90,8 @@ export default function OpportunityCard({
                   key={skill}
                   className={`px-2 py-0.5 rounded-md text-[10px] font-mono border transition-colors ${
                     isMatched
-                      ? "bg-purple-500/10 text-purple-300 border-purple-500/30"
-                      : "bg-zinc-950 text-zinc-400 border-zinc-800"
+                      ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30 font-semibold"
+                      : "bg-zinc-950/80 text-zinc-400 border-zinc-800"
                   }`}
                 >
                   {skill}
@@ -101,26 +108,39 @@ export default function OpportunityCard({
       </div>
 
       {/* Footer Meta Row */}
-      <div className="pt-5 mt-5 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400">
+      <div className="pt-4 mt-4 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400">
         <div className="flex items-center gap-3 font-mono text-[11px]">
-          <span className="flex items-center gap-1">
+          <span className="flex items-center gap-1 text-zinc-400">
             <MapPin className="w-3.5 h-3.5 text-zinc-500" />
             <span className="capitalize">{opportunity.locationType.replace("_", " ")}</span>
           </span>
 
           {opportunity.applicationDeadline && (
-            <span className={`flex items-center gap-1 ${isDeadlinePassed ? "text-red-400" : "text-zinc-400"}`}>
+            <span
+              className={`flex items-center gap-1 ${
+                isDeadlinePassed
+                  ? "text-red-400"
+                  : isClosingSoon
+                  ? "text-amber-400 font-semibold"
+                  : "text-zinc-400"
+              }`}
+            >
               <Clock className="w-3.5 h-3.5" />
-              {isDeadlinePassed ? "Expired" : new Date(opportunity.applicationDeadline).toLocaleDateString()}
+              {isDeadlinePassed
+                ? "Expired"
+                : new Date(opportunity.applicationDeadline).toLocaleDateString(undefined, {
+                    month: "short",
+                    day: "numeric",
+                  })}
             </span>
           )}
         </div>
 
         <Link
           href={`/opportunities/${opportunity.slug}`}
-          className="inline-flex items-center gap-1 text-purple-400 hover:text-purple-300 font-medium text-xs group-hover:translate-x-0.5 transition-all"
+          className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-medium text-xs group-hover:translate-x-0.5 transition-all"
         >
-          <span>View Details</span>
+          <span>Details</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
