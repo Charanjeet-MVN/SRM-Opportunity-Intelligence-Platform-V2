@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import Link from "next/link";
 import { motion } from "framer-motion";
 import { Opportunity } from "@/types";
 import OpportunityTypeBadge from "./OpportunityTypeBadge";
@@ -15,34 +14,49 @@ interface OpportunityCardProps {
   opportunity: Opportunity;
   relevance?: RelevanceScoreResult;
   initialIsSaved?: boolean;
+  onSelectDetail?: (opp: Opportunity) => void;
 }
 
 export default function OpportunityCard({
   opportunity,
   relevance,
   initialIsSaved = false,
+  onSelectDetail,
 }: OpportunityCardProps) {
   const isDeadlinePassed = opportunity.applicationDeadline
     ? new Date(opportunity.applicationDeadline) < new Date()
     : false;
 
-  const isClosingSoon = opportunity.applicationDeadline && !isDeadlinePassed
-    ? (new Date(opportunity.applicationDeadline).getTime() - new Date().getTime()) < 3 * 24 * 60 * 60 * 1000
-    : false;
+  const isClosingSoon =
+    opportunity.applicationDeadline && !isDeadlinePassed
+      ? new Date(opportunity.applicationDeadline).getTime() - new Date().getTime() <
+        3 * 24 * 60 * 60 * 1000
+      : false;
+
+  const handleCardClick = (e: React.MouseEvent) => {
+    // If user clicked link or bookmark button directly, do not intercept
+    if ((e.target as HTMLElement).closest("a, button")) return;
+    if (onSelectDetail) {
+      onSelectDetail(opportunity);
+    }
+  };
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 10 }}
+      initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.2, ease: "easeOut" }}
-      whileHover={{ y: -3 }}
-      className="group rounded-2xl bg-zinc-900/60 border border-zinc-800/80 hover:border-indigo-500/40 p-5 sm:p-6 flex flex-col justify-between transition-all duration-200 shadow-lg hover:shadow-2xl hover:shadow-indigo-950/20 relative overflow-hidden"
+      transition={{ duration: 0.25, ease: "easeOut" }}
+      whileHover={{ y: -4 }}
+      onClick={handleCardClick}
+      className={`group rounded-3xl bg-zinc-900/50 border border-zinc-800/80 hover:border-indigo-500/40 p-6 flex flex-col justify-between transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-indigo-950/30 relative overflow-hidden ${
+        onSelectDetail ? "cursor-pointer" : ""
+      }`}
     >
-      {/* Top Subtle Gradient Hover Accent */}
-      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/60 transition-all duration-300" />
+      {/* Top Border Illumination Line on Hover */}
+      <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/80 transition-all duration-500" />
 
-      <div className="space-y-3.5">
-        {/* Header Badges & Actions */}
+      <div className="space-y-4">
+        {/* Header Badges & Bookmark */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
             <OpportunityTypeBadge type={opportunity.type} />
@@ -60,20 +74,24 @@ export default function OpportunityCard({
 
         {/* Title & Publisher */}
         <div className="space-y-1">
-          <Link href={`/opportunities/${opportunity.slug}`} className="block group/link">
-            <h3 className="text-base font-semibold text-zinc-100 group-hover/link:text-indigo-300 transition-colors line-clamp-2 leading-snug">
+          <button
+            onClick={() => onSelectDetail && onSelectDetail(opportunity)}
+            className="text-left block w-full group/title focus:outline-none"
+          >
+            <h3 className="text-base sm:text-lg font-bold text-zinc-100 group-hover/title:text-indigo-300 transition-colors line-clamp-2 leading-snug">
               {opportunity.title}
             </h3>
-          </Link>
+          </button>
+
           {opportunity.club && (
-            <div className="text-xs text-zinc-400 font-medium flex items-center gap-1">
+            <div className="text-xs text-zinc-400 font-medium flex items-center gap-1.5 pt-0.5">
               <span>by</span>
-              <span className="text-zinc-200 font-medium">{opportunity.club.name}</span>
+              <span className="text-zinc-200 font-semibold">{opportunity.club.name}</span>
             </div>
           )}
         </div>
 
-        {/* Summary Description */}
+        {/* Summary */}
         {opportunity.summary && (
           <p className="text-xs text-zinc-400 font-light line-clamp-2 leading-relaxed">
             {opportunity.summary}
@@ -88,7 +106,7 @@ export default function OpportunityCard({
               return (
                 <span
                   key={skill}
-                  className={`px-2 py-0.5 rounded-md text-[10px] font-mono border transition-colors ${
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-mono border transition-colors ${
                     isMatched
                       ? "bg-indigo-500/15 text-indigo-300 border-indigo-500/30 font-semibold"
                       : "bg-zinc-950/80 text-zinc-400 border-zinc-800"
@@ -99,7 +117,7 @@ export default function OpportunityCard({
               );
             })}
             {opportunity.requiredSkills.length > 4 && (
-              <span className="px-1.5 py-0.5 rounded-md text-[10px] font-mono text-zinc-500">
+              <span className="px-2 py-1 rounded-lg text-[10px] font-mono text-zinc-500">
                 +{opportunity.requiredSkills.length - 4} more
               </span>
             )}
@@ -108,7 +126,7 @@ export default function OpportunityCard({
       </div>
 
       {/* Footer Meta Row */}
-      <div className="pt-4 mt-4 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400">
+      <div className="pt-4 mt-5 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400">
         <div className="flex items-center gap-3 font-mono text-[11px]">
           <span className="flex items-center gap-1 text-zinc-400">
             <MapPin className="w-3.5 h-3.5 text-zinc-500" />
@@ -121,7 +139,7 @@ export default function OpportunityCard({
                 isDeadlinePassed
                   ? "text-red-400"
                   : isClosingSoon
-                  ? "text-amber-400 font-semibold"
+                  ? "text-amber-400 font-semibold animate-pulse"
                   : "text-zinc-400"
               }`}
             >
@@ -136,13 +154,13 @@ export default function OpportunityCard({
           )}
         </div>
 
-        <Link
-          href={`/opportunities/${opportunity.slug}`}
-          className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-medium text-xs group-hover:translate-x-0.5 transition-all"
+        <button
+          onClick={() => onSelectDetail && onSelectDetail(opportunity)}
+          className="inline-flex items-center gap-1 text-indigo-400 hover:text-indigo-300 font-medium text-xs group-hover:translate-x-0.5 transition-all cursor-pointer font-mono"
         >
           <span>Details</span>
           <ArrowRight className="w-3.5 h-3.5" />
-        </Link>
+        </button>
       </div>
     </motion.div>
   );
