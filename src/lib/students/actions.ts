@@ -238,3 +238,43 @@ export async function saveOnboardingAction(
 
   redirect("/dashboard/student");
 }
+
+/**
+ * Updates authenticated student's password via Supabase Auth
+ */
+export async function updateStudentPasswordAction(
+  prevState: StudentProfileFormState | null,
+  formData: FormData
+): Promise<StudentProfileFormState> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { error: "Authentication required." };
+  }
+
+  const newPassword = (formData.get("newPassword") as string)?.trim();
+  const confirmPassword = (formData.get("confirmPassword") as string)?.trim();
+
+  if (!newPassword || newPassword.length < 6) {
+    return { error: "Password must be at least 6 characters long." };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { error: "Passwords do not match." };
+  }
+
+  const { error } = await supabase.auth.updateUser({
+    password: newPassword,
+  });
+
+  if (error) {
+    return { error: error.message };
+  }
+
+  return {
+    success: true,
+    message: "Password updated successfully!",
+  };
+}
+
