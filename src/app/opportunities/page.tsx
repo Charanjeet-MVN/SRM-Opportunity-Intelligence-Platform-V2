@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { createClient } from "@/lib/supabase/client";
 import { getPublicOpportunitiesAction } from "@/lib/opportunities/actions";
 import OpportunityCard from "@/components/opportunities/OpportunityCard";
@@ -68,6 +68,53 @@ export default function PublicOpportunitiesPage() {
   const [sortBy, setSortBy] = useState<"newest" | "closing_soon">("newest");
   const [reloadKey, setReloadKey] = useState(0);
 
+  // Canvas ref for background floating particles
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // Background particle animation
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
+    let animId: number;
+    const width = (canvas.width = canvas.parentElement?.clientWidth || 800);
+    const height = (canvas.height = 200);
+
+    const particles: { x: number; y: number; vx: number; vy: number; radius: number }[] = Array.from(
+      { length: 20 },
+      () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        vx: (Math.random() - 0.5) * 0.4,
+        vy: (Math.random() - 0.5) * 0.4,
+        radius: Math.random() * 1.5 + 0.5,
+      })
+    );
+
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
+      particles.forEach((p) => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0) p.x = width;
+        if (p.x > width) p.x = 0;
+        if (p.y < 0) p.y = height;
+        if (p.y > height) p.y = 0;
+
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(99, 102, 241, 0.25)";
+        ctx.fill();
+      });
+      animId = requestAnimationFrame(render);
+    };
+
+    render();
+    return () => cancelAnimationFrame(animId);
+  }, []);
+
   // Load authenticated user profile
   useEffect(() => {
     async function loadUser() {
@@ -98,7 +145,7 @@ export default function PublicOpportunitiesPage() {
             });
           }
         }
-      } catch (e) {
+      } catch {
         // Unauthenticated session
       }
     }
@@ -197,7 +244,7 @@ export default function PublicOpportunitiesPage() {
           <div className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/dashboard/student"
-              className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-medium text-xs transition-all hover:bg-zinc-800/80"
+              className="px-3.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-medium text-xs transition-all hover:bg-zinc-800/80"
             >
               Workspace
             </Link>
@@ -216,34 +263,38 @@ export default function PublicOpportunitiesPage() {
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 space-y-8 flex-1 w-full">
         {/* Discovery Hero Header */}
-        <motion.div
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="space-y-3 max-w-3xl"
-        >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono bg-zinc-900 border border-zinc-800 text-zinc-300 shadow-lg">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span className="text-emerald-400 font-semibold uppercase tracking-wider text-[10px]">
-              Live Opportunity Feed
-            </span>
-            <span className="text-zinc-700">•</span>
-            <span className="text-zinc-400 text-[11px] flex items-center gap-1">
-              <ShieldCheck className="w-3 h-3 text-indigo-400" /> PostgreSQL Verified
-            </span>
-          </div>
+        <div className="relative overflow-hidden rounded-3xl bg-zinc-950/60 border border-zinc-800/70 p-6 sm:p-8">
+          <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none z-0" />
+          
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="relative z-10 space-y-3 max-w-3xl"
+          >
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-mono bg-zinc-900/90 border border-zinc-800 text-zinc-300 shadow-lg backdrop-blur-md">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+              </span>
+              <span className="text-emerald-400 font-semibold uppercase tracking-wider text-[10px]">
+                Opportunity Intelligence Engine
+              </span>
+              <span className="text-zinc-700">•</span>
+              <span className="text-zinc-400 text-[11px] flex items-center gap-1">
+                <ShieldCheck className="w-3 h-3 text-indigo-400" /> Live Database Feed
+              </span>
+            </div>
 
-          <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-zinc-100">
-            Explore Opportunities
-          </h1>
+            <h1 className="text-3xl sm:text-5xl font-black tracking-tight text-zinc-100">
+              Explore Opportunities
+            </h1>
 
-          <p className="text-sm sm:text-base text-zinc-400 font-light leading-relaxed">
-            Surfacing verified hackathons, internships, research programs, and campus recruitments published by official SRM student organizations and departments.
-          </p>
-        </motion.div>
+            <p className="text-sm sm:text-base text-zinc-400 font-light leading-relaxed">
+              Surfacing verified hackathons, internships, research programs, and campus recruitments published by official SRM student organizations and departments.
+            </p>
+          </motion.div>
+        </div>
 
         {/* Command Search & Desktop Filter System */}
         <div className="space-y-5 p-5 sm:p-7 rounded-3xl bg-zinc-950/80 border border-zinc-800/90 shadow-2xl backdrop-blur-xl">
@@ -369,12 +420,12 @@ export default function PublicOpportunitiesPage() {
         {/* Dynamic Counter & Reset Bar */}
         <div className="flex items-center justify-between text-xs font-mono text-zinc-400 flex-wrap gap-3 px-1">
           <div className="flex items-center gap-2">
-            <span className="font-bold text-zinc-200 text-sm">
+            <motion.span key={totalCount} initial={{ opacity: 0, y: -4 }} animate={{ opacity: 1, y: 0 }} className="font-bold text-zinc-200 text-sm">
               {totalCount} {totalCount === 1 ? "opportunity" : "opportunities"}
-            </span>
+            </motion.span>
             <span className="text-zinc-600">•</span>
             <span className="text-emerald-400 text-[11px] flex items-center gap-1">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Real-time Database Results
+              <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Database Indexed Feed
             </span>
           </div>
 
@@ -405,7 +456,7 @@ export default function PublicOpportunitiesPage() {
             <div className="space-y-1.5">
               <h3 className="text-base font-bold text-zinc-200">Database Connection Issue</h3>
               <p className="text-xs text-zinc-400 leading-relaxed">
-                Could not retrieve opportunities from the server. Please verify your connection or try again.
+                Could not retrieve opportunities from the server. Please verify your network connection or retry.
               </p>
             </div>
             <button
@@ -417,7 +468,7 @@ export default function PublicOpportunitiesPage() {
             </button>
           </div>
         ) : opportunities.length === 0 ? (
-          /* Intentional Empty State (No Mock Data) */
+          /* Intentional Empty State (Zero Fake Data) */
           <div className="py-20 px-6 rounded-3xl bg-zinc-950 border border-zinc-800/80 text-center space-y-4 max-w-lg mx-auto shadow-2xl">
             <div className="w-14 h-14 rounded-2xl bg-zinc-900/90 border border-zinc-800 text-indigo-400 flex items-center justify-center mx-auto shadow-inner">
               <Search className="w-6 h-6" />
@@ -445,23 +496,28 @@ export default function PublicOpportunitiesPage() {
             )}
           </div>
         ) : (
-          /* Opportunity Card Grid */
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {opportunities.map((opp) => {
-              const relevance = studentProfile
-                ? calculateOpportunityRelevance(studentProfile, opp)
-                : undefined;
+          /* Opportunity Card Grid with Framer Motion AnimatePresence Layout Animations */
+          <motion.div
+            layout
+            className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"
+          >
+            <AnimatePresence mode="popLayout">
+              {opportunities.map((opp) => {
+                const relevance = studentProfile
+                  ? calculateOpportunityRelevance(studentProfile, opp)
+                  : undefined;
 
-              return (
-                <OpportunityCard
-                  key={opp.id}
-                  opportunity={opp}
-                  relevance={relevance}
-                  onSelectDetail={handleSelectOpportunityDetail}
-                />
-              );
-            })}
-          </div>
+                return (
+                  <OpportunityCard
+                    key={opp.id}
+                    opportunity={opp}
+                    relevance={relevance}
+                    onSelectDetail={handleSelectOpportunityDetail}
+                  />
+                );
+              })}
+            </AnimatePresence>
+          </motion.div>
         )}
       </main>
 

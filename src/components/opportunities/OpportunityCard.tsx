@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useRef } from "react";
 import { motion } from "framer-motion";
 import { Opportunity } from "@/types";
 import OpportunityTypeBadge from "./OpportunityTypeBadge";
@@ -23,6 +23,10 @@ export default function OpportunityCard({
   initialIsSaved = false,
   onSelectDetail,
 }: OpportunityCardProps) {
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [rotateX, setRotateX] = useState(0);
+  const [rotateY, setRotateY] = useState(0);
+
   const isDeadlinePassed = opportunity.applicationDeadline
     ? new Date(opportunity.applicationDeadline) < new Date()
     : false;
@@ -33,8 +37,28 @@ export default function OpportunityCard({
         3 * 24 * 60 * 60 * 1000
       : false;
 
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    const centerX = rect.width / 2;
+    const centerY = rect.height / 2;
+
+    // Restrained 3D tilt (max 4 deg)
+    const rotX = -((y - centerY) / centerY) * 4;
+    const rotY = ((x - centerX) / centerX) * 4;
+
+    setRotateX(rotX);
+    setRotateY(rotY);
+  };
+
+  const handleMouseLeave = () => {
+    setRotateX(0);
+    setRotateY(0);
+  };
+
   const handleCardClick = (e: React.MouseEvent) => {
-    // If user clicked link or bookmark button directly, do not intercept
     if ((e.target as HTMLElement).closest("a, button")) return;
     if (onSelectDetail) {
       onSelectDetail(opportunity);
@@ -43,19 +67,27 @@ export default function OpportunityCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.25, ease: "easeOut" }}
-      whileHover={{ y: -4 }}
+      ref={cardRef}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       onClick={handleCardClick}
-      className={`group rounded-3xl bg-zinc-900/50 border border-zinc-800/80 hover:border-indigo-500/40 p-6 flex flex-col justify-between transition-all duration-300 shadow-xl hover:shadow-2xl hover:shadow-indigo-950/30 relative overflow-hidden ${
+      layout
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, scale: 0.95 }}
+      transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+      style={{
+        transform: `perspective(1000px) rotateX(${rotateX}deg) rotateY(${rotateY}deg)`,
+        transition: "transform 0.15s ease-out",
+      }}
+      className={`group rounded-3xl bg-zinc-900/50 border border-zinc-800/80 hover:border-indigo-500/50 p-6 flex flex-col justify-between transition-colors duration-300 shadow-xl hover:shadow-2xl hover:shadow-indigo-950/40 relative overflow-hidden ${
         onSelectDetail ? "cursor-pointer" : ""
       }`}
     >
       {/* Top Border Illumination Line on Hover */}
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/80 transition-all duration-500" />
 
-      <div className="space-y-4">
+      <div className="space-y-4 relative z-10">
         {/* Header Badges & Bookmark */}
         <div className="flex items-center justify-between gap-2 flex-wrap">
           <div className="flex items-center gap-2 flex-wrap">
@@ -126,7 +158,7 @@ export default function OpportunityCard({
       </div>
 
       {/* Footer Meta Row */}
-      <div className="pt-4 mt-5 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400">
+      <div className="pt-4 mt-5 border-t border-zinc-800/60 flex items-center justify-between text-xs text-zinc-400 relative z-10">
         <div className="flex items-center gap-3 font-mono text-[11px]">
           <span className="flex items-center gap-1 text-zinc-400">
             <MapPin className="w-3.5 h-3.5 text-zinc-500" />

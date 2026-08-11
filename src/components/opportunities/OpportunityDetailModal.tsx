@@ -19,6 +19,19 @@ interface OpportunityDetailModalProps {
   isAuthenticated?: boolean;
 }
 
+const contentStagger = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
+  },
+};
+
+const itemFadeUp = {
+  hidden: { opacity: 0, y: 14 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.35, ease: "easeOut" as const } },
+};
+
 export function OpportunityDetailModal({
   opportunity,
   isOpen,
@@ -45,7 +58,7 @@ export function OpportunityDetailModal({
             className="fixed inset-0 bg-black/80 backdrop-blur-md"
           />
 
-          {/* Modal Container */}
+          {/* Modal Dialog */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 16 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -65,7 +78,7 @@ export function OpportunityDetailModal({
 
                 <button
                   onClick={onClose}
-                  className="p-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition-colors"
+                  className="p-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -83,10 +96,15 @@ export function OpportunityDetailModal({
               )}
             </div>
 
-            {/* Modal Scrollable Content */}
-            <div className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1">
-              {/* Meta Specs Strip */}
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 font-mono text-xs">
+            {/* Modal Scrollable Content with Staggered Reveals */}
+            <motion.div
+              variants={contentStagger}
+              initial="hidden"
+              animate="show"
+              className="p-6 sm:p-8 space-y-6 overflow-y-auto flex-1"
+            >
+              {/* Specs Strip */}
+              <motion.div variants={itemFadeUp} className="grid grid-cols-2 sm:grid-cols-3 gap-3 p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 font-mono text-xs">
                 <div>
                   <span className="text-[10px] text-zinc-500 uppercase block">Location Mode</span>
                   <span className="text-zinc-200 font-semibold capitalize flex items-center gap-1 mt-0.5">
@@ -116,30 +134,32 @@ export function OpportunityDetailModal({
                     </span>
                   </div>
                 )}
-              </div>
+              </motion.div>
 
               {/* Student Relevance Evaluation if Logged In */}
               {isAuthenticated && (
-                <OpportunityEvaluationSection
-                  opportunity={opportunity}
-                  profile={studentProfile}
-                  isAuthenticated={isAuthenticated}
-                />
+                <motion.div variants={itemFadeUp}>
+                  <OpportunityEvaluationSection
+                    opportunity={opportunity}
+                    profile={studentProfile}
+                    isAuthenticated={isAuthenticated}
+                  />
+                </motion.div>
               )}
 
               {/* Summary & Description */}
-              <div className="space-y-3">
+              <motion.div variants={itemFadeUp} className="space-y-3">
                 <h3 className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wider">
                   Opportunity Description
                 </h3>
                 <div className="text-xs sm:text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
                   {opportunity.description}
                 </div>
-              </div>
+              </motion.div>
 
               {/* Required Skills */}
               {opportunity.requiredSkills.length > 0 && (
-                <div className="space-y-2">
+                <motion.div variants={itemFadeUp} className="space-y-2">
                   <h3 className="text-xs font-mono font-bold text-zinc-400 uppercase tracking-wider flex items-center gap-1.5">
                     <Sparkles className="w-3.5 h-3.5 text-indigo-400" /> Required Skills
                   </h3>
@@ -153,11 +173,11 @@ export function OpportunityDetailModal({
                       </span>
                     ))}
                   </div>
-                </div>
+                </motion.div>
               )}
 
               {/* Eligibility Rules */}
-              <div className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-2 text-xs font-mono">
+              <motion.div variants={itemFadeUp} className="p-4 rounded-2xl bg-zinc-900/40 border border-zinc-800/80 space-y-2 text-xs font-mono">
                 <h3 className="text-[10px] text-zinc-500 uppercase tracking-wider font-bold">
                   Eligibility Breakdown
                 </h3>
@@ -171,8 +191,8 @@ export function OpportunityDetailModal({
                     <span>{opportunity.eligibleDepartments.length > 0 ? opportunity.eligibleDepartments.join(", ") : "All SRM Departments"}</span>
                   </div>
                 </div>
-              </div>
-            </div>
+              </motion.div>
+            </motion.div>
 
             {/* Modal Sticky Footer Actions */}
             <div className="p-5 border-t border-zinc-800/80 bg-zinc-900/80 backdrop-blur-xl flex flex-wrap items-center justify-between gap-3 sticky bottom-0 z-20">

@@ -12,12 +12,12 @@ interface SmartOpportunitySearchBarProps {
   isSearching?: boolean;
 }
 
-const SEARCH_SUGGESTIONS = [
+const COMMON_QUERIES = [
   "AI hackathons",
-  "Research opportunities for CSE students",
-  "Internships related to Python",
-  "Competitions closing this week",
-  "Workshops for beginners",
+  "Python internships",
+  "CSE research",
+  "React workshops",
+  "Scholarships for engineering",
 ];
 
 export default function SmartOpportunitySearchBar({
@@ -31,7 +31,7 @@ export default function SmartOpportunitySearchBar({
 
   const parsedQuery = parseSmartSearchQuery(value);
 
-  // Keyboard shortcut listener (Cmd+K / Ctrl+K)
+  // Keyboard shortcut listener (Cmd+K / Ctrl+K & Escape)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
@@ -61,22 +61,31 @@ export default function SmartOpportunitySearchBar({
 
   return (
     <div className="w-full space-y-3 relative">
-      {/* Search Input Container */}
-      <div
-        className={`relative rounded-2xl bg-zinc-900/90 border transition-all duration-200 shadow-xl backdrop-blur-xl ${
+      {/* Command Search Input Container */}
+      <motion.div
+        animate={{
+          scale: isFocused ? 1.01 : 1,
+        }}
+        transition={{ duration: 0.2 }}
+        className={`relative rounded-2xl bg-zinc-900/90 border transition-all duration-300 shadow-2xl backdrop-blur-xl ${
           isFocused
-            ? "border-indigo-500/60 ring-2 ring-indigo-500/20 bg-zinc-900"
+            ? "border-indigo-500/70 ring-2 ring-indigo-500/25 bg-zinc-900 shadow-indigo-950/40"
             : "border-zinc-800/80 hover:border-zinc-700"
         }`}
       >
         <div className="flex items-center px-4 py-3.5 gap-3">
-          <Search className={`w-4 h-4 transition-colors ${isFocused ? "text-indigo-400" : "text-zinc-500"}`} />
+          <Search
+            className={`w-4 h-4 transition-colors duration-200 ${
+              isFocused ? "text-indigo-400" : "text-zinc-500"
+            }`}
+          />
 
           <input
             ref={inputRef}
             type="text"
             value={value}
             onFocus={() => setIsFocused(true)}
+            onBlur={() => setTimeout(() => setIsFocused(false), 150)}
             onChange={(e) => handleInputChange(e.target.value)}
             placeholder='Search hackathons, AI internships, research programs...'
             className="flex-1 bg-transparent text-xs sm:text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none font-sans"
@@ -92,7 +101,7 @@ export default function SmartOpportunitySearchBar({
                 onClear();
                 inputRef.current?.focus();
               }}
-              className="p-1 rounded-lg text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800 transition-colors cursor-pointer"
+              className="p-1 rounded-lg text-zinc-500 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
               title="Clear search"
             >
               <X className="w-4 h-4" />
@@ -100,7 +109,7 @@ export default function SmartOpportunitySearchBar({
           )}
 
           <div className="hidden sm:flex items-center gap-1 px-2 py-1 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] font-mono text-zinc-500 select-none">
-            <Command className="w-3 h-3" />
+            <Command className="w-3 h-3 text-zinc-400" />
             <span>K</span>
           </div>
         </div>
@@ -110,7 +119,7 @@ export default function SmartOpportunitySearchBar({
           <div className="px-4 pb-3 flex items-center gap-2 flex-wrap border-t border-zinc-800/60 pt-2.5">
             <span className="text-[10px] font-mono text-zinc-500 uppercase flex items-center gap-1">
               <Filter className="w-3 h-3 text-indigo-400" />
-              Detected Filters:
+              Detected Query Badges:
             </span>
             {parsedQuery.extractedBadges.map((badge, idx) => (
               <span
@@ -122,35 +131,35 @@ export default function SmartOpportunitySearchBar({
             ))}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Suggestions Dropdown on Focus */}
       <AnimatePresence>
         {isFocused && !value && (
           <motion.div
-            initial={{ opacity: 0, y: -4 }}
+            initial={{ opacity: 0, y: -6 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -4 }}
+            exit={{ opacity: 0, y: -6 }}
             transition={{ duration: 0.15 }}
-            className="absolute left-0 right-0 top-full mt-2 z-50 p-3.5 rounded-2xl bg-zinc-900/95 border border-zinc-800 shadow-2xl backdrop-blur-2xl space-y-2.5"
+            className="absolute left-0 right-0 top-full mt-2 z-50 p-4 rounded-2xl bg-zinc-900/95 border border-zinc-800 shadow-2xl backdrop-blur-2xl space-y-2.5"
           >
             <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 px-1">
-              <span className="flex items-center gap-1.5 text-indigo-400 font-medium">
+              <span className="flex items-center gap-1.5 text-indigo-400 font-bold">
                 <Sparkles className="w-3.5 h-3.5" />
-                Popular Search Queries
+                Natural Query Suggestions
               </span>
-              <span>Click to search</span>
+              <span className="text-[10px] text-zinc-500">Click to filter</span>
             </div>
 
             <div className="flex flex-wrap gap-2 pt-0.5">
-              {SEARCH_SUGGESTIONS.map((suggestion) => (
+              {COMMON_QUERIES.map((suggestion) => (
                 <button
                   key={suggestion}
                   onMouseDown={() => handleSelectSuggestion(suggestion)}
-                  className="px-3 py-1.5 rounded-xl text-xs bg-zinc-950/80 hover:bg-indigo-600/20 text-zinc-300 hover:text-indigo-300 border border-zinc-800 hover:border-indigo-500/30 transition-all flex items-center gap-1.5 cursor-pointer font-sans"
+                  className="px-3 py-1.5 rounded-xl text-xs bg-zinc-950 hover:bg-indigo-600/20 text-zinc-300 hover:text-indigo-300 border border-zinc-800 hover:border-indigo-500/40 transition-all flex items-center gap-1.5 cursor-pointer font-sans"
                 >
                   <Tag className="w-3 h-3 text-zinc-500" />
-                  <span>{suggestion}</span>
+                  <span>&quot;{suggestion}&quot;</span>
                 </button>
               ))}
             </div>
