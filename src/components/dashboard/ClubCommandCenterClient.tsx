@@ -380,7 +380,7 @@ export default function ClubCommandCenterClient({
                 <div className="space-y-3">
                   <AnimatePresence mode="popLayout">
                     {draftOpps.map((opp, i) => (
-                      <OpportunityManagementRow key={opp.id} opp={opp} index={i} isDraft />
+                      <OpportunityManagementRow key={opp.id} opp={opp} index={i} />
                     ))}
                   </AnimatePresence>
                 </div>
