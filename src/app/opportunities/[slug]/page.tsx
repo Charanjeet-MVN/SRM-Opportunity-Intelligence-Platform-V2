@@ -246,16 +246,29 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
                       )}
                     </div>
                     <div>
-                      <h3 className="text-sm font-semibold text-zinc-100">{opportunity.club.name}</h3>
+                      <Link
+                        href={`/clubs/${opportunity.club.slug || opportunity.club.id}`}
+                        className="text-sm font-semibold text-zinc-100 hover:text-purple-300 transition-colors block"
+                      >
+                        {opportunity.club.name}
+                      </Link>
                       <VerificationBadge status={opportunity.club.verificationStatus} />
                     </div>
                   </div>
 
-                  {opportunity.club.officialEmail && (
-                    <p className="text-[11px] text-zinc-500 font-mono pt-1">
-                      {opportunity.club.officialEmail}
-                    </p>
-                  )}
+                  <div className="pt-2 border-t border-zinc-800/60 flex items-center justify-between">
+                    {opportunity.club.officialEmail && (
+                      <p className="text-[11px] text-zinc-500 font-mono">
+                        {opportunity.club.officialEmail}
+                      </p>
+                    )}
+                    <Link
+                      href={`/clubs/${opportunity.club.slug || opportunity.club.id}`}
+                      className="text-xs text-purple-400 hover:text-purple-300 font-mono font-medium ml-auto"
+                    >
+                      View Organization Profile →
+                    </Link>
+                  </div>
                 </div>
               </div>
             )}
