@@ -25,6 +25,8 @@ import {
   CheckCircle2,
 } from "lucide-react";
 
+import { getDeadlineUrgency } from "@/lib/notifications/urgency";
+
 interface CommandCenterClientProps {
   studentProfile: StudentProfile | null;
   profileCompleteness: number;
@@ -33,7 +35,6 @@ interface CommandCenterClientProps {
   registeredOpportunities: TrackerOpportunity[];
 }
 
-// Framer Motion stagger container
 const staggerContainer = {
   hidden: { opacity: 0 },
   show: {
@@ -47,7 +48,6 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-// Deadline urgency helper (reused from tracker)
 function getUpcomingDeadlineInfo(savedOpps: TrackerOpportunity[]): {
   critical: number;
   upcoming: number;
@@ -82,13 +82,20 @@ export default function CommandCenterClient({
   const { critical: criticalDeadlines, upcoming: upcomingDeadlines } =
     getUpcomingDeadlineInfo(savedOpportunities);
 
-  // Compute unique upcoming deadlines across saved + registered
   const allTracked = [...savedOpportunities, ...registeredOpportunities];
   const uniqueMap = new Map<string, TrackerOpportunity>();
   allTracked.forEach((o) => uniqueMap.set(o.id, o));
-  const upcomingCount = Array.from(uniqueMap.values()).filter(
+  const uniqueItems = Array.from(uniqueMap.values());
+
+  const upcomingCount = uniqueItems.filter(
     (o) => o.applicationDeadline && new Date(o.applicationDeadline) > new Date()
   ).length;
+
+  // Deterministic Attention Items: Tracked items with deadlines within 7 days
+  const attentionItems = uniqueItems
+    .map((o) => ({ ...o, urgency: getDeadlineUrgency(o.applicationDeadline) }))
+    .filter((o) => o.urgency.status !== "expired" && o.urgency.status !== "no_deadline" && (o.urgency.daysLeft !== null && o.urgency.daysLeft <= 7))
+    .sort((a, b) => (a.urgency.daysLeft ?? 99) - (b.urgency.daysLeft ?? 99));
 
   const STAT_CARDS = [
     {
@@ -219,6 +226,89 @@ export default function CommandCenterClient({
                 +{studentProfile.skills!.length - 5} more
               </span>
             )}
+          </div>
+        )}
+      </motion.div>
+
+      {/* ── STUDENT ATTENTION CENTER ── */}
+      <motion.div variants={fadeUp}>
+        {attentionItems.length > 0 ? (
+          <div className="rounded-3xl border border-amber-500/25 bg-gradient-to-r from-amber-950/20 via-zinc-950 to-zinc-950 p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
+                <h2 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
+                  {attentionItems.length} {attentionItems.length === 1 ? "opportunity needs" : "opportunities need"} your attention
+                </h2>
+              </div>
+              <Link
+                href="/dashboard/student/calendar"
+                className="text-xs text-amber-400 hover:text-amber-300 font-mono font-medium flex items-center gap-1"
+              >
+                <span>Timeline View</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {attentionItems.map((opp) => (
+                <div
+                  key={opp.id}
+                  className="p-4 rounded-2xl bg-zinc-900/80 border border-amber-500/20 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-3"
+                >
+                  <div className="space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
+                        opp.urgency.status === "due_today"
+                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse font-bold"
+                          : opp.urgency.status === "due_tomorrow"
+                          ? "bg-amber-500/10 text-amber-400 border-amber-500/30 font-semibold"
+                          : "bg-purple-500/10 text-purple-300 border-purple-500/20"
+                      }`}>
+                        {opp.urgency.label}
+                      </span>
+                      <span className="text-[10px] font-mono text-zinc-500 capitalize">{opp.type.replace("_", " ")}</span>
+                    </div>
+
+                    <Link href={`/opportunities/${opp.slug}`}>
+                      <h3 className="text-xs font-bold text-zinc-100 hover:text-amber-300 transition-colors line-clamp-2 leading-snug">
+                        {opp.title}
+                      </h3>
+                    </Link>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-2 border-t border-zinc-800/60">
+                    <span className="truncate">{opp.club?.name || "SRM Org"}</span>
+                    <Link
+                      href={`/opportunities/${opp.slug}`}
+                      className="text-amber-400 hover:text-amber-300 font-semibold inline-flex items-center gap-1 shrink-0"
+                    >
+                      <span>Apply</span>
+                      <ArrowRight className="w-3 h-3" />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
+                <CheckCircle2 className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-xs font-bold text-zinc-200">You&apos;re all caught up.</h3>
+                <p className="text-[11px] text-zinc-400 font-mono">No urgent deadlines requiring immediate action right now.</p>
+              </div>
+            </div>
+            <Link
+              href="/opportunities"
+              className="text-xs text-emerald-400 hover:text-emerald-300 font-mono font-medium inline-flex items-center gap-1 shrink-0"
+            >
+              <span>Explore Opportunities Feed</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
           </div>
         )}
       </motion.div>

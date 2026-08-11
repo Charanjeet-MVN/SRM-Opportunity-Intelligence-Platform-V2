@@ -6,6 +6,9 @@ import { signOutAction } from "@/lib/auth/actions";
 
 import { redirect } from "next/navigation";
 
+import { getNotificationsAction } from "@/lib/notifications/actions";
+import NotificationBellPopover from "@/components/notifications/NotificationBellPopover";
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -18,9 +21,13 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  // Query user role & name
+  // Query user role & name & notifications
   let role = "student";
   let fullName = user.email?.split("@")[0] || "User";
+
+  const [{ notifications, unreadCount }] = await Promise.all([
+    getNotificationsAction(),
+  ]);
 
   if (user) {
     const { data: userRec } = await supabase
@@ -91,6 +98,11 @@ export default async function DashboardLayout({
 
           {/* User Account Controls */}
           <div className="flex items-center gap-3">
+            <NotificationBellPopover
+              initialNotifications={notifications}
+              initialUnreadCount={unreadCount}
+            />
+
             <Link
               href="/dashboard/student/profile"
               className="flex items-center gap-2 px-3 py-1.5 text-xs rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 transition-all"
