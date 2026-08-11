@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Opportunity, OpportunityType, LocationType, OpportunityStatus } from "@/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { calculateOpportunityRelevance } from "@/lib/relevance/scoring";
 
 export interface OpportunityFormState {
   error?: string;
@@ -266,8 +267,6 @@ export async function getPersonalizedFeedAction(filters: OpportunityFilterOption
     }
   }
 
-  const { calculateOpportunityRelevance } = await import("../relevance/scoring");
-
   const { opportunities, total, error } = await getPublicOpportunitiesAction(filters);
 
   if (error) return { opportunities: [], total: 0, error };
@@ -494,4 +493,77 @@ export async function deleteOpportunityAction(
   revalidatePath("/opportunities");
   return { success: true };
 }
+
+/**
+ * Fetches related active opportunities based on category/type
+ */
+export async function getRelatedOpportunitiesAction(
+  currentOpportunityId: string,
+  type: OpportunityType,
+  limit: number = 3
+): Promise<{ related: Opportunity[] }> {
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("opportunities")
+    .select(`
+      *,
+      clubs (
+        id,
+        name,
+        slug,
+        logo_url,
+        verification_status
+      )
+    `)
+    .eq("status", "published")
+    .neq("id", currentOpportunityId)
+    .eq("type", type)
+    .or(`application_deadline.is.null,application_deadline.gte.${now}`)
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (error || !data) return { related: [] };
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const related: Opportunity[] = data.map((item: any) => ({
+    id: item.id,
+    clubId: item.club_id,
+    createdBy: item.created_by,
+    title: item.title,
+    slug: item.slug,
+    summary: item.summary || undefined,
+    description: item.description,
+    type: item.type,
+    locationType: item.location_type,
+    locationAddress: item.location_address || undefined,
+    externalUrl: item.external_url || undefined,
+    requiredSkills: item.required_skills || [],
+    eligibleDepartments: item.eligible_departments || [],
+    eligibleYears: item.eligible_years || [],
+    maxParticipants: item.max_participants || undefined,
+    applicationDeadline: item.application_deadline || undefined,
+    eventStartDate: item.event_start_date || undefined,
+    eventEndDate: item.event_end_date || undefined,
+    status: item.status,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+    club: item.clubs
+      ? {
+          id: item.club_id,
+          name: item.clubs.name,
+          slug: item.clubs.slug || "",
+          logoUrl: item.clubs.logo_url || undefined,
+          verificationStatus: item.clubs.verification_status,
+          createdAt: "",
+          updatedAt: "",
+        }
+      : undefined,
+  }));
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+
+  return { related };
+}
+
 
