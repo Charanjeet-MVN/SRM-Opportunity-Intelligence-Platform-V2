@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Club } from "@/types";
 import { ClubAnalyticsOverview } from "@/lib/clubs/analytics";
 import VerificationBadge from "@/components/clubs/VerificationBadge";
+import { updateOpportunityStatusAction, deleteOpportunityAction } from "@/lib/opportunities/actions";
 import {
   Plus,
   Layers,
@@ -22,6 +23,11 @@ import {
   ExternalLink,
   Clock,
   CheckCircle2,
+  Trash2,
+  Archive,
+  MoreHorizontal,
+  X,
+  Loader2,
 } from "lucide-react";
 
 interface ClubCommandCenterClientProps {
@@ -535,13 +541,46 @@ export default function ClubCommandCenterClient({
 function OpportunityManagementRow({
   opp,
   index,
-  isDraft,
 }: {
   opp: ClubAnalyticsOverview["opportunityPerformance"][0];
   index: number;
-  isDraft?: boolean;
 }) {
+  const [showMenu, setShowMenu] = useState(false);
+  const [showConfirmDelete, setShowConfirmDelete] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deleted, setDeleted] = useState(false);
+  const [currentStatus, setCurrentStatus] = useState(opp.status);
+
   const deadlineInfo = getOpportunityDeadlineStatus(opp.deadline);
+
+  if (deleted) return null;
+
+  async function handleStatusToggle(newStatus: "draft" | "published" | "archived") {
+    setIsUpdating(true);
+    setActionError(null);
+    const res = await updateOpportunityStatusAction(opp.id, newStatus);
+    setIsUpdating(false);
+    if (res.error) {
+      setActionError(res.error);
+    } else {
+      setCurrentStatus(newStatus);
+      setShowMenu(false);
+    }
+  }
+
+  async function handleDelete() {
+    setIsDeleting(true);
+    setActionError(null);
+    const res = await deleteOpportunityAction(opp.id);
+    setIsDeleting(false);
+    if (res.error) {
+      setActionError(res.error);
+    } else {
+      setDeleted(true);
+    }
+  }
 
   return (
     <motion.div
@@ -550,49 +589,145 @@ function OpportunityManagementRow({
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, scale: 0.96 }}
       transition={{ delay: index * 0.04, duration: 0.25, ease: "easeOut" }}
-      className="group flex items-center gap-4 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-indigo-500/30 transition-all relative overflow-hidden"
+      className="group flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-indigo-500/30 transition-all relative overflow-hidden"
     >
       <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/50 transition-all duration-500" />
 
-      {/* Status indicator dot */}
-      <div className={`shrink-0 w-2 h-2 rounded-full ${isDraft ? "bg-amber-500" : "bg-emerald-500"} shadow-sm`} />
+      <div className="flex items-center gap-3 flex-1 min-w-0">
+        {/* Status indicator dot */}
+        <div className={`shrink-0 w-2.5 h-2.5 rounded-full ${currentStatus === "published" ? "bg-emerald-500" : currentStatus === "archived" ? "bg-zinc-600" : "bg-amber-500"} shadow-sm`} />
 
-      <div className="flex-1 min-w-0 space-y-0.5">
-        <h3 className="text-xs font-semibold text-zinc-200 truncate group-hover:text-indigo-300 transition-colors">
-          {opp.title}
-        </h3>
-        <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500">
-          <span className="capitalize">{opp.type.replace("_", " ")}</span>
-          <span>•</span>
-          <span className={opp.status === "published" ? "text-emerald-400" : "text-amber-400"}>
-            {opp.status}
-          </span>
-          <span>•</span>
-          <span>{new Date(opp.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</span>
+        <div className="flex-1 min-w-0 space-y-0.5">
+          <h3 className="text-xs font-semibold text-zinc-200 truncate group-hover:text-indigo-300 transition-colors">
+            {opp.title}
+          </h3>
+          <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500">
+            <span className="capitalize">{opp.type.replace("_", " ")}</span>
+            <span>•</span>
+            <span className={currentStatus === "published" ? "text-emerald-400 font-semibold" : currentStatus === "archived" ? "text-zinc-500" : "text-amber-400 font-semibold"}>
+              {currentStatus}
+            </span>
+            <span>•</span>
+            <span>{new Date(opp.createdAt).toLocaleDateString(undefined, { month: "short", day: "numeric" })}</span>
+          </div>
         </div>
       </div>
 
-      {/* Deadline chip */}
-      <span className={`shrink-0 text-[11px] font-mono ${deadlineInfo.color}`}>
-        {deadlineInfo.label}
-      </span>
-
-      {/* Save count */}
-      {!isDraft && (
-        <span className="shrink-0 flex items-center gap-1 text-[11px] font-mono text-indigo-400">
-          <Bookmark className="w-3 h-3" />
-          {opp.savedCount}
+      <div className="flex items-center gap-3 shrink-0 self-end sm:self-center">
+        {/* Deadline chip */}
+        <span className={`text-[11px] font-mono ${deadlineInfo.color}`}>
+          {deadlineInfo.label}
         </span>
-      )}
 
-      {/* View link */}
-      <Link
-        href={`/opportunities`}
-        className="shrink-0 inline-flex items-center gap-1 text-[11px] text-zinc-500 hover:text-indigo-400 transition-colors font-mono"
-        title="View on platform"
-      >
-        <ExternalLink className="w-3.5 h-3.5" />
-      </Link>
+        {/* Save count */}
+        {currentStatus === "published" && (
+          <span className="flex items-center gap-1 text-[11px] font-mono text-indigo-400">
+            <Bookmark className="w-3 h-3" />
+            {opp.savedCount}
+          </span>
+        )}
+
+        {/* View link */}
+        <Link
+          href={`/opportunities`}
+          className="p-1.5 rounded-lg text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800 transition-colors"
+          title="View on platform"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+        </Link>
+
+        {/* Action Menu Dropdown / Confirmation Toggle */}
+        <div className="relative">
+          <button
+            onClick={() => {
+              setShowMenu((m) => !m);
+              setShowConfirmDelete(false);
+              setActionError(null);
+            }}
+            className="p-1.5 rounded-lg text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800 transition-colors cursor-pointer"
+            title="Opportunity Options"
+          >
+            {isUpdating ? <Loader2 className="w-3.5 h-3.5 animate-spin text-indigo-400" /> : <MoreHorizontal className="w-3.5 h-3.5" />}
+          </button>
+
+          <AnimatePresence>
+            {showMenu && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95, y: -4 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                exit={{ opacity: 0, scale: 0.95, y: -4 }}
+                transition={{ duration: 0.15 }}
+                className="absolute right-0 top-8 z-30 w-48 rounded-xl bg-zinc-900 border border-zinc-800 shadow-2xl p-1.5 space-y-1"
+              >
+                {actionError && (
+                  <div className="p-2 text-[10px] text-red-400 bg-red-500/10 rounded-lg border border-red-500/20">
+                    {actionError}
+                  </div>
+                )}
+
+                {currentStatus === "draft" && (
+                  <button
+                    onClick={() => handleStatusToggle("published")}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-emerald-400 hover:bg-emerald-500/10 transition-colors font-medium flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Publish Opportunity</span>
+                  </button>
+                )}
+
+                {currentStatus === "published" && (
+                  <button
+                    onClick={() => handleStatusToggle("archived")}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-zinc-400 hover:bg-zinc-800 transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <Archive className="w-3.5 h-3.5" />
+                    <span>Archive / Close</span>
+                  </button>
+                )}
+
+                {currentStatus === "archived" && (
+                  <button
+                    onClick={() => handleStatusToggle("published")}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-indigo-400 hover:bg-indigo-500/10 transition-colors font-medium flex items-center gap-2 cursor-pointer"
+                  >
+                    <CheckCircle2 className="w-3.5 h-3.5" />
+                    <span>Re-Publish</span>
+                  </button>
+                )}
+
+                {!showConfirmDelete ? (
+                  <button
+                    onClick={() => setShowConfirmDelete(true)}
+                    className="w-full text-left px-3 py-1.5 rounded-lg text-xs text-red-400 hover:bg-red-500/10 transition-colors font-medium flex items-center gap-2 cursor-pointer"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    <span>Delete</span>
+                  </button>
+                ) : (
+                  <div className="p-2 bg-red-500/10 rounded-lg border border-red-500/20 space-y-1.5">
+                    <p className="text-[10px] text-red-300 font-semibold">Delete permanently?</p>
+                    <div className="flex gap-1.5">
+                      <button
+                        onClick={handleDelete}
+                        disabled={isDeleting}
+                        className="flex-1 py-1 rounded bg-red-600 hover:bg-red-500 text-white text-[10px] font-bold transition-colors cursor-pointer"
+                      >
+                        {isDeleting ? "Deleting…" : "Confirm"}
+                      </button>
+                      <button
+                        onClick={() => setShowConfirmDelete(false)}
+                        className="px-2 py-1 rounded bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-[10px] transition-colors cursor-pointer"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
     </motion.div>
   );
 }

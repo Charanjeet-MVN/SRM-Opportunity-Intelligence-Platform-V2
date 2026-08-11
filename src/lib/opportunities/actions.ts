@@ -418,3 +418,80 @@ export async function getMyClubOpportunitiesAction(): Promise<{
 
   return { opportunities };
 }
+
+/**
+ * Server Action: Updates an opportunity status (draft / published / archived / closed)
+ */
+export async function updateOpportunityStatusAction(
+  opportunityId: string,
+  newStatus: OpportunityStatus
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  // Verify ownership
+  const { data: memberRecord } = await supabase
+    .from("club_members")
+    .select("club_id, clubs(verification_status)")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!memberRecord || !memberRecord.club_id) {
+    return { success: false, error: "Unauthorized club action." };
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const verificationStatus = (memberRecord.clubs as any)?.verification_status;
+  if (newStatus === "published" && verificationStatus !== "verified") {
+    return { success: false, error: "Only verified clubs can publish opportunities." };
+  }
+
+  const { error } = await supabase
+    .from("opportunities")
+    .update({ status: newStatus, updated_at: new Date().toISOString() })
+    .eq("id", opportunityId)
+    .eq("club_id", memberRecord.club_id);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/dashboard/club");
+  revalidatePath("/opportunities");
+  return { success: true };
+}
+
+/**
+ * Server Action: Deletes an opportunity published by the club
+ */
+export async function deleteOpportunityAction(
+  opportunityId: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  const { data: memberRecord } = await supabase
+    .from("club_members")
+    .select("club_id")
+    .eq("user_id", user.id)
+    .single();
+
+  if (!memberRecord || !memberRecord.club_id) {
+    return { success: false, error: "Unauthorized club action." };
+  }
+
+  const { error } = await supabase
+    .from("opportunities")
+    .delete()
+    .eq("id", opportunityId)
+    .eq("club_id", memberRecord.club_id);
+
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/dashboard/club");
+  revalidatePath("/opportunities");
+  return { success: true };
+}
+
