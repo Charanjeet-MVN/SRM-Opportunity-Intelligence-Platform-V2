@@ -1,7 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { Club, ClubVerificationRequest } from "@/types";
+import { Club, ClubVerificationRequest, ClubVerificationStatus } from "@/types";
 import { revalidatePath } from "next/cache";
 
 export interface ClubFormState {
@@ -238,3 +238,156 @@ export async function reviewVerificationAction(
     message: decision === "verified" ? "Club approved and granted Official SRM status!" : "Club verification request rejected.",
   };
 }
+
+export interface PublicClubRecord {
+  id: string;
+  name: string;
+  slug: string;
+  category?: string;
+  description?: string;
+  logoUrl?: string;
+  verificationStatus: ClubVerificationStatus;
+  officialEmail?: string;
+  verifiedAt?: string;
+  opportunityCount: number;
+}
+
+/**
+ * Fetches public campus clubs for the Clubs Discovery directory
+ */
+export async function getPublicClubsAction(filters: {
+  category?: string;
+  search?: string;
+} = {}): Promise<{
+  clubs: PublicClubRecord[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  let query = supabase
+    .from("clubs")
+    .select(`
+      *,
+      opportunities ( id, status )
+    `)
+    .order("name", { ascending: true });
+
+  if (filters.category && filters.category !== "all") {
+    query = query.eq("category", filters.category);
+  }
+
+  if (filters.search) {
+    query = query.or(`name.ilike.%${filters.search}%,description.ilike.%${filters.search}%`);
+  }
+
+  const { data, error } = await query;
+  if (error) return { clubs: [], error: error.message };
+
+  /* eslint-disable @typescript-eslint/no-explicit-any */
+  const clubs: PublicClubRecord[] = (data || []).map((c: any) => {
+    const pubCount = (c.opportunities || []).filter((o: any) => o.status === "published").length;
+  /* eslint-enable @typescript-eslint/no-explicit-any */
+    return {
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      category: c.category || undefined,
+      description: c.description || undefined,
+      logoUrl: c.logo_url || undefined,
+      verificationStatus: c.verification_status,
+      officialEmail: c.official_email || undefined,
+      verifiedAt: c.verified_at || undefined,
+      opportunityCount: pubCount,
+    };
+  });
+
+  return { clubs };
+}
+
+/**
+ * Fetches a single club by slug for the Public Club Profile page
+ */
+export async function getClubBySlugAction(slug: string): Promise<{
+  club: PublicClubRecord | null;
+  opportunities: import("@/types").Opportunity[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+
+  const { data: clubData, error: clubError } = await supabase
+    .from("clubs")
+    .select("*")
+    .or(`slug.eq.${slug},id.eq.${slug}`)
+    .single();
+
+  if (clubError || !clubData) {
+    return { club: null, opportunities: [], error: "Organization not found" };
+  }
+
+  // Fetch active published opportunities for this club
+  const { data: oppsData } = await supabase
+    .from("opportunities")
+    .select(`
+      *,
+      clubs (
+        id,
+        name,
+        slug,
+        logo_url,
+        verification_status
+      )
+    `)
+    .eq("club_id", clubData.id)
+    .eq("status", "published")
+    .order("created_at", { ascending: false });
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const opportunities: import("@/types").Opportunity[] = (oppsData || []).map((item: any) => ({
+    id: item.id,
+    clubId: item.club_id,
+    createdBy: item.created_by,
+    title: item.title,
+    slug: item.slug,
+    summary: item.summary || undefined,
+    description: item.description,
+    type: item.type,
+    locationType: item.location_type,
+    locationAddress: item.location_address || undefined,
+    externalUrl: item.external_url || undefined,
+    requiredSkills: item.required_skills || [],
+    eligibleDepartments: item.eligible_departments || [],
+    eligibleYears: item.eligible_years || [],
+    maxParticipants: item.max_participants || undefined,
+    applicationDeadline: item.application_deadline || undefined,
+    eventStartDate: item.event_start_date || undefined,
+    eventEndDate: item.event_end_date || undefined,
+    status: item.status,
+    createdAt: item.created_at,
+    updatedAt: item.updated_at,
+    club: {
+      id: clubData.id,
+      name: clubData.name,
+      slug: clubData.slug,
+      logoUrl: clubData.logo_url || undefined,
+      verificationStatus: clubData.verification_status,
+      createdAt: "",
+      updatedAt: "",
+    },
+  }));
+
+  const club: PublicClubRecord = {
+    id: clubData.id,
+    name: clubData.name,
+    slug: clubData.slug,
+    category: clubData.category || undefined,
+    description: clubData.description || undefined,
+    logoUrl: clubData.logo_url || undefined,
+    verificationStatus: clubData.verification_status,
+    officialEmail: clubData.official_email || undefined,
+    verifiedAt: clubData.verified_at || undefined,
+    opportunityCount: opportunities.length,
+  };
+
+  return { club, opportunities };
+}
+

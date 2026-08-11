@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef } from "react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { Opportunity } from "@/types";
 import OpportunityTypeBadge from "./OpportunityTypeBadge";
@@ -118,7 +119,13 @@ export default function OpportunityCard({
           {opportunity.club && (
             <div className="text-xs text-zinc-400 font-medium flex items-center gap-1.5 pt-0.5">
               <span>by</span>
-              <span className="text-zinc-200 font-semibold">{opportunity.club.name}</span>
+              <Link
+                href={`/clubs/${opportunity.club.slug || opportunity.club.id}`}
+                onClick={(e) => e.stopPropagation()}
+                className="text-zinc-200 hover:text-purple-300 font-semibold transition-colors underline decoration-zinc-700 underline-offset-2"
+              >
+                {opportunity.club.name}
+              </Link>
             </div>
           )}
         </div>

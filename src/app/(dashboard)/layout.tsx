@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Compass, Bookmark, Calendar, User, LogOut, CheckCircle2 } from "lucide-react";
+import { Compass, Bookmark, Calendar, User, LogOut, CheckCircle2, Building2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { signOutAction } from "@/lib/auth/actions";
 
@@ -84,6 +84,14 @@ export default async function DashboardLayout({
               >
                 <CheckCircle2 className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Registrations</span>
+              </Link>
+
+              <Link
+                href="/clubs"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900 transition-colors"
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Clubs</span>
               </Link>
 
               <Link
