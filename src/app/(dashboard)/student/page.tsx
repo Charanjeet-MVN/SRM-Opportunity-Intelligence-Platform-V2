@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getPersonalizedFeedAction } from "@/lib/opportunities/actions";
 import { getSavedOpportunitiesAction, getRegisteredOpportunitiesAction } from "@/lib/engagement/actions";
 import CommandCenterClient from "@/components/dashboard/CommandCenterClient";
+import { getAIRecommendedOpportunitiesAction } from "@/lib/ai/service";
 import { redirect } from "next/navigation";
 import { calculateProfileCompleteness, isStudentOnboardingCompleted } from "@/lib/students/actions";
 import { StudentProfile } from "@/types";
@@ -49,10 +50,12 @@ export default async function StudentDashboardPage() {
     { opportunities },
     { savedOpportunities },
     { registeredOpportunities },
+    { recommendations: aiRecommendations },
   ] = await Promise.all([
     getPersonalizedFeedAction({ limit: 6, sortBy: "relevance" }),
     getSavedOpportunitiesAction(),
     getRegisteredOpportunitiesAction(),
+    getAIRecommendedOpportunitiesAction(),
   ]);
 
   return (
@@ -62,6 +65,7 @@ export default async function StudentDashboardPage() {
       opportunities={opportunities}
       savedOpportunities={savedOpportunities || []}
       registeredOpportunities={registeredOpportunities || []}
+      aiRecommendations={aiRecommendations || []}
     />
   );
 }

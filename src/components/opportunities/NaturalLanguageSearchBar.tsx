@@ -64,45 +64,55 @@ export default function NaturalLanguageSearchBar({
         </div>
       </div>
 
-      {/* AI Query Intent Badges */}
+      {/* AI Search Confirmation & Interpreted Filter Vectors */}
       {hasParsedIntent && (
-        <div className="flex items-center gap-2 flex-wrap px-1 text-xs">
-          <span className="text-[10px] font-mono uppercase text-purple-400 flex items-center gap-1">
-            <Sparkles className="w-3 h-3" /> AI Query Vectors:
-          </span>
-
-          {parsed.parsedSkills.map((s) => (
-            <span
-              key={s}
-              className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20 capitalize"
-            >
-              Skill: {s}
+        <div className="p-3 rounded-xl bg-zinc-900/80 border border-purple-500/25 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[10px] font-mono uppercase text-purple-400 flex items-center gap-1 font-bold">
+              <Sparkles className="w-3 h-3 text-purple-400" /> Interpreted AI Search Criteria:
             </span>
-          ))}
 
-          {parsed.parsedDepartment && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-              Dept: {parsed.parsedDepartment}
-            </span>
-          )}
+            {parsed.parsedSkills.map((s) => (
+              <span
+                key={s}
+                className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20 capitalize inline-flex items-center gap-1"
+              >
+                <span>Skill: {s}</span>
+              </span>
+            ))}
 
-          {parsed.parsedType && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 capitalize">
-              Type: {parsed.parsedType}
-            </span>
-          )}
+            {parsed.parsedDepartment && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 inline-flex items-center gap-1">
+                <span>Dept: {parsed.parsedDepartment}</span>
+              </span>
+            )}
 
-          {parsed.parsedLocation && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20 capitalize">
-              Location: {parsed.parsedLocation.replace("_", " ")}
-            </span>
-          )}
+            {parsed.parsedType && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 capitalize inline-flex items-center gap-1">
+                <span>Type: {parsed.parsedType}</span>
+              </span>
+            )}
 
-          {parsed.isUrgent && (
-            <span className="px-2 py-0.5 rounded-full text-[10px] font-mono bg-red-500/10 text-red-300 border border-red-500/20 uppercase font-bold">
-              Urgent Deadlines
-            </span>
-          )}
+            {parsed.parsedLocation && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-blue-500/10 text-blue-300 border border-blue-500/20 capitalize inline-flex items-center gap-1">
+                <span>Location: {parsed.parsedLocation.replace("_", " ")}</span>
+              </span>
+            )}
+
+            {parsed.isUrgent && (
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/20 uppercase font-bold">
+                Urgent Deadlines
+              </span>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={onClear}
+            className="text-[10px] font-mono text-zinc-500 hover:text-zinc-300 shrink-0 self-end sm:self-center"
+          >
+            Clear AI Filters
+          </button>
         </div>
       )}
 

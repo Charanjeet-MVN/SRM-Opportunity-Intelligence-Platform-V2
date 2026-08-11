@@ -8,6 +8,7 @@ import VerificationBadge from "@/components/clubs/VerificationBadge";
 import BookmarkButton from "@/components/opportunities/BookmarkButton";
 import RegisterApplyButton from "@/components/opportunities/RegisterApplyButton";
 import OpportunityEvaluationSection from "@/components/opportunities/OpportunityEvaluationSection";
+import AIOpportunityIntelligenceSection from "@/components/opportunities/AIOpportunityIntelligenceSection";
 import { isOpportunityRegisteredAction } from "@/lib/engagement/actions";
 import { StudentProfile } from "@/types";
 import {
@@ -176,6 +177,12 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
             </div>
           </div>
         </div>
+        {/* AI Opportunity Intelligence Layer Section */}
+        <AIOpportunityIntelligenceSection
+          opportunity={opportunity}
+          profile={studentProfile}
+          isAuthenticated={Boolean(user)}
+        />
 
         {/* Deterministic Student Profile Evaluation Section */}
         <OpportunityEvaluationSection

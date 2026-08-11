@@ -33,6 +33,7 @@ interface CommandCenterClientProps {
   opportunities: (Opportunity & { relevance?: unknown })[];
   savedOpportunities: TrackerOpportunity[];
   registeredOpportunities: TrackerOpportunity[];
+  aiRecommendations?: (Opportunity & { aiExplanation: string; relevanceScore: number })[];
 }
 
 const staggerContainer = {
@@ -74,6 +75,7 @@ export default function CommandCenterClient({
   opportunities,
   savedOpportunities,
   registeredOpportunities,
+  aiRecommendations = [],
 }: CommandCenterClientProps) {
   const [feedExpanded, setFeedExpanded] = useState(false);
   const displayedOpportunities = feedExpanded ? opportunities : opportunities.slice(0, 3);
@@ -434,6 +436,62 @@ export default function CommandCenterClient({
           initialTab="saved"
         />
       </motion.div>
+      {/* ── RECOMMENDED FOR YOU (AI INTELLIGENCE LAYER) ── */}
+      {aiRecommendations.length > 0 && (
+        <motion.div variants={fadeUp} className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+              <h2 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
+                Recommended for You
+              </h2>
+            </div>
+            <span className="text-[11px] font-mono text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
+              Personalized Vector Match
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {aiRecommendations.map((rec) => (
+              <div
+                key={rec.id}
+                className="p-5 rounded-3xl bg-zinc-900/70 border border-purple-500/20 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group shadow-xl"
+              >
+                <div className="space-y-2">
+                  {/* AI Explanation Chip */}
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-purple-500/15 border border-purple-500/30 text-purple-300">
+                    <Sparkles className="w-3 h-3 text-purple-400 shrink-0" />
+                    <span className="truncate">{rec.aiExplanation}</span>
+                  </div>
+
+                  <Link href={`/opportunities/${rec.slug}`}>
+                    <h3 className="text-sm font-bold text-zinc-100 group-hover:text-purple-300 transition-colors line-clamp-2 leading-snug">
+                      {rec.title}
+                    </h3>
+                  </Link>
+
+                  {rec.summary && (
+                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed font-light">
+                      {rec.summary}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-[11px] font-mono text-zinc-500">
+                  <span>{rec.club?.name || "SRM Org"}</span>
+                  <Link
+                    href={`/opportunities/${rec.slug}`}
+                    className="text-purple-400 group-hover:text-purple-300 font-semibold inline-flex items-center gap-1 shrink-0"
+                  >
+                    <span>View Match</span>
+                    <ArrowRight className="w-3 h-3" />
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      )}
 
       {/* ── PERSONALIZED DISCOVERY FEED ── */}
       <motion.div variants={fadeUp} className="space-y-4">
