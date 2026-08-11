@@ -1,6 +1,6 @@
 import React from "react";
 import { getMyClubProfileAction } from "@/lib/clubs/actions";
-import CreateOpportunityWizard from "@/components/dashboard/CreateOpportunityWizard";
+import OpportunityPublishingStudio from "@/components/dashboard/OpportunityPublishingStudio";
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert } from "lucide-react";
 
@@ -26,17 +26,17 @@ export default async function CreateOpportunityPage() {
   }
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="mb-6">
+    <div className="max-w-7xl mx-auto space-y-6">
+      <div>
         <Link
           href="/dashboard/club"
-          className="inline-flex items-center gap-1.5 text-xs text-zinc-400 hover:text-zinc-200 transition-colors"
+          className="inline-flex items-center gap-1.5 text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors"
         >
           <ArrowLeft className="w-3.5 h-3.5" />
           <span>Back to Command Center</span>
         </Link>
       </div>
-      <CreateOpportunityWizard club={club} />
+      <OpportunityPublishingStudio club={club} />
     </div>
   );
 }
