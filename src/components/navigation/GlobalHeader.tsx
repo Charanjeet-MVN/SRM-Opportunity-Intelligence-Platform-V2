@@ -22,6 +22,7 @@ import {
   Sparkles,
   BarChart3,
   Layout,
+  Award,
 } from "lucide-react";
 
 interface GlobalHeaderProps {
@@ -76,6 +77,10 @@ export default function GlobalHeader({
 
               {isStudent && (
                 <>
+                  <NavLink href="/dashboard/student/feed" active={pathname === "/dashboard/student/feed"}>
+                    <Award className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Showcase Feed</span>
+                  </NavLink>
                   <NavLink href="/dashboard/student" active={pathname === "/dashboard/student"}>
                     <Layout className="w-3.5 h-3.5 text-amber-400" />
                     <span>Dashboard</span>

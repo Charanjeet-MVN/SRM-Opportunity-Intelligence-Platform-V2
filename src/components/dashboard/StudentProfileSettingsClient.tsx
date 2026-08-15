@@ -21,6 +21,8 @@ import {
   Lock,
   LogOut,
   Zap,
+  Award,
+  Share2,
 } from "lucide-react";
 
 interface StudentProfileSettingsClientProps {
@@ -34,6 +36,55 @@ export default function StudentProfileSettingsClient({
 }: StudentProfileSettingsClientProps) {
   const [profile, setProfile] = useState<StudentProfile | null>(initialProfile);
   const [activeTab, setActiveTab] = useState<"profile" | "settings">("profile");
+
+  // Dynamic profile achievements, activity score, and badges
+  const [stats, setStats] = useState({
+    achievements: 0,
+    activityScore: 100,
+    badges: [] as string[],
+  });
+  const [copied, setCopied] = useState(false);
+
+  useEffect(() => {
+    try {
+      const savedGoals = localStorage.getItem("soip_workspace_goals");
+      const savedNotes = localStorage.getItem("soip_workspace_notes");
+      const savedResources = localStorage.getItem("soip_workspace_resources");
+
+      const goalsList = savedGoals ? JSON.parse(savedGoals) : [];
+      const notesList = savedNotes ? JSON.parse(savedNotes) : [];
+      const resourcesList = savedResources ? JSON.parse(savedResources) : [];
+
+      const completedGoals = goalsList.filter((g: { status?: string }) => g.status === "completed").length;
+
+      // Base activity score: 100 + (completed goals * 25) + (notes * 10) + (saved resources * 15)
+      const score = 100 + (completedGoals * 25) + (notesList.length * 10) + (resourcesList.filter((r: { saved?: boolean }) => r.saved).length * 15);
+
+      const earnedBadges: string[] = [];
+      if (notesList.length > 0) earnedBadges.push("Knowledge Seeker");
+      if (completedGoals > 0) earnedBadges.push("Goal Achiever");
+      if (score >= 150) earnedBadges.push("Career Accelerator");
+      if (resourcesList.filter((r: { saved?: boolean }) => r.saved).length > 0) earnedBadges.push("Opportunity Hunter");
+
+      if (earnedBadges.length === 0) earnedBadges.push("Joined Pioneer");
+
+      setStats({
+        achievements: completedGoals,
+        activityScore: score,
+        badges: earnedBadges,
+      });
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleShareProfile = () => {
+    const shareUrl = `${window.location.origin}/student/profile/${profile?.registerNumber || profile?.id || "demo"}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  };
 
   // Selected skills and interests arrays
   const [selectedSkills, setSelectedSkills] = useState<string[]>(initialProfile?.skills || []);
@@ -167,6 +218,57 @@ export default function StudentProfileSettingsClient({
             </p>
           </div>
         </div>
+
+        {/* Achievements, Badges, and Activity Score Widget */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-850/60 text-xs font-mono">
+          <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-inner">
+            <div className="space-y-1">
+              <span className="text-zinc-500 uppercase text-[9px] block">Achievements</span>
+              <span className="text-xs font-bold text-zinc-200">{stats.achievements} Completed</span>
+            </div>
+            <Award className="w-5 h-5 text-amber-400 shrink-0" />
+          </div>
+
+          <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-inner">
+            <div className="space-y-1">
+              <span className="text-zinc-500 uppercase text-[9px] block">Activity Score</span>
+              <span className="text-xs font-bold text-purple-405">{stats.activityScore} Pts</span>
+            </div>
+            <Zap className="w-5 h-5 text-purple-400 shrink-0 animate-pulse" />
+          </div>
+
+          <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-inner">
+            <div className="space-y-1">
+              <span className="text-zinc-500 uppercase text-[9px] block">Public Portfolio</span>
+              <button
+                onClick={handleShareProfile}
+                className="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all text-[10px] cursor-pointer"
+              >
+                <span>{copied ? "Copied!" : "Share Link"}</span>
+                <Share2 className="w-3 h-3 text-zinc-500" />
+              </button>
+            </div>
+            <User className="w-5 h-5 text-indigo-400 shrink-0" />
+          </div>
+        </div>
+
+        {/* Badges Earned Section */}
+        {stats.badges.length > 0 && (
+          <div className="space-y-2 pt-2 text-xs font-mono">
+            <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider block">Earned Badges</span>
+            <div className="flex flex-wrap gap-2">
+              {stats.badges.map((badge, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-1 rounded-xl text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 font-bold flex items-center gap-1.5 shadow-sm"
+                >
+                  <Sparkles className="w-3 h-3 text-amber-400 fill-amber-400 animate-pulse" />
+                  {badge}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Tab Switcher */}
         <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/60">
