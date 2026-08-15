@@ -1,23 +1,29 @@
 "use client";
 
 import React, { useRef, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useSpring } from "framer-motion";
 
 interface HoverCardProps extends React.HTMLAttributes<HTMLDivElement> {
   children: React.ReactNode;
   className?: string;
   glowColor?: string;
+  maxTilt?: number;
 }
 
 export default function HoverCard({
   children,
   className = "",
-  glowColor = "rgba(139, 92, 246, 0.15)",
+  glowColor = "rgba(139, 92, 246, 0.12)",
+  maxTilt = 8,
   ...props
 }: HoverCardProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [coords, setCoords] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
+
+  // Smooth spring physics for responsive 3D tilt tracking
+  const rotateX = useSpring(0, { stiffness: 200, damping: 20 });
+  const rotateY = useSpring(0, { stiffness: 200, damping: 20 });
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -25,16 +31,40 @@ export default function HoverCard({
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
     setCoords({ x, y });
+
+    // Degree calculations based on center pointer offset
+    const rotX = -((y / rect.height) - 0.5) * maxTilt;
+    const rotY = ((x / rect.width) - 0.5) * maxTilt;
+    rotateX.set(rotX);
+    rotateY.set(rotY);
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    rotateX.set(0);
+    rotateY.set(0);
   };
 
   return (
-    <div
+    <motion.div
       ref={cardRef}
       onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`relative rounded-3xl bg-zinc-900/60 border border-zinc-800/80 transition-all duration-300 shadow-xl overflow-hidden hover:border-zinc-700/60 hover:shadow-2xl hover:shadow-purple-950/5 hover:-translate-y-1 ${className}`}
-      {...props}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{
+        rotateX,
+        rotateY,
+        transformStyle: "preserve-3d",
+        perspective: 1000,
+      }}
+      whileHover={{ scale: 1.015 }}
+      className={`relative rounded-3xl bg-zinc-900/60 border border-zinc-850/80 transition-all duration-300 shadow-xl overflow-hidden hover:border-zinc-750/80 hover:shadow-2xl hover:shadow-purple-950/5 ${className}`}
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      {...(props as any)}
     >
       {/* Dynamic follow-mouse glow light */}
       <AnimatePresence>
@@ -57,7 +87,7 @@ export default function HoverCard({
         )}
       </AnimatePresence>
 
-      <div className="relative z-10">{children}</div>
-    </div>
+      <div className="relative z-10 transform-style-3d translate-z-[12px]">{children}</div>
+    </motion.div>
   );
 }

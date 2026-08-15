@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
 import {
   Compass,
   ShieldCheck,
@@ -14,6 +13,7 @@ import {
   SlidersHorizontal,
   Sparkles,
 } from "lucide-react";
+import HoverCard from "@/components/ui/HoverCard";
 
 interface FeatureCardProps {
   icon: React.ElementType;
@@ -213,24 +213,25 @@ export function ProductValueSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {features.map((feat, idx) => {
             const Icon = feat.icon;
+            const glowColors = [
+              "rgba(99, 102, 241, 0.12)", // Discovery
+              "rgba(139, 92, 246, 0.12)", // Tracking
+              "rgba(16, 185, 129, 0.12)", // Trust
+              "rgba(56, 189, 248, 0.12)", // Search
+              "rgba(245, 158, 11, 0.12)",  // Workspace
+              "rgba(244, 63, 94, 0.12)"    // Publishing
+            ];
             return (
-              <motion.div
+              <HoverCard
                 key={feat.title}
-                initial={{ opacity: 0, y: 30 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true, amount: 0.2 }}
-                transition={{ duration: 0.6, delay: idx * 0.08, ease: "easeOut" }}
-                whileHover={{ y: -6, scale: 1.01 }}
-                className={`group relative p-7 rounded-3xl bg-zinc-900/40 border border-zinc-800/80 hover:border-indigo-500/40 transition-all duration-300 flex flex-col justify-between overflow-hidden shadow-2xl ${
+                glowColor={glowColors[idx % glowColors.length]}
+                className={`p-7 flex flex-col justify-between ${
                   feat.colSpan || ""
                 }`}
               >
-                {/* Subtle border illumination gradient on hover */}
-                <div className="absolute inset-0 bg-gradient-to-b from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-
                 <div className="space-y-5 relative z-10">
                   <div className="flex items-center justify-between">
-                    <div className={`p-3 rounded-2xl ${feat.accentBg} border ${feat.accentBorder} group-hover:scale-110 transition-transform duration-300`}>
+                    <div className={`p-3 rounded-2xl ${feat.accentBg} border ${feat.accentBorder}`}>
                       <Icon className={`w-5 h-5 ${feat.accentColor}`} />
                     </div>
                     <span className={`text-[10px] font-mono font-bold tracking-widest uppercase ${feat.accentColor}`}>
@@ -249,7 +250,7 @@ export function ProductValueSection() {
                 <div className="mt-8 pt-4 border-t border-zinc-800/60 relative z-10">
                   {feat.previewWidget}
                 </div>
-              </motion.div>
+              </HoverCard>
             );
           })}
         </div>
