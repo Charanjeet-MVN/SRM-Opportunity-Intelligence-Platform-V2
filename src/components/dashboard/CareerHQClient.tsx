@@ -31,6 +31,9 @@ import {
   Calendar as CalendarIcon,
   ChevronLeft,
 } from "lucide-react";
+import HoverCard from "@/components/ui/HoverCard";
+import MagneticButton from "@/components/ui/MagneticButton";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface PriorityTask {
   id: string;
@@ -246,11 +249,11 @@ export default function CareerHQClient() {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-6"
           >
-            {/* Top overview score cockpit */}
+             {/* Top overview score cockpit */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               
               {/* Career health score (7 columns) */}
-              <div className="md:col-span-7 p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-5 shadow-xl">
+              <HoverCard className="md:col-span-7 p-6 space-y-5" glowColor="rgba(168, 85, 247, 0.12)">
                 <div className="flex items-center justify-between border-b border-zinc-850 pb-2">
                   <h3 className="text-xs uppercase font-mono text-zinc-400 font-bold tracking-wider flex items-center gap-1.5">
                     <ShieldCheck className="w-4 h-4 text-purple-400" />
@@ -279,10 +282,10 @@ export default function CareerHQClient() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </HoverCard>
 
               {/* Success predictions (5 columns) */}
-              <div className="md:col-span-5 p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-5 shadow-xl">
+              <HoverCard className="md:col-span-5 p-6 space-y-5" glowColor="rgba(99, 102, 241, 0.12)">
                 <div className="border-b border-zinc-850 pb-2">
                   <h3 className="text-xs uppercase font-mono text-zinc-400 font-bold tracking-wider flex items-center gap-1.5">
                     <TrendingUp className="w-4 h-4 text-indigo-400" />
@@ -303,7 +306,7 @@ export default function CareerHQClient() {
                     </div>
                   ))}
                 </div>
-              </div>
+              </HoverCard>
 
             </div>
 
@@ -311,7 +314,7 @@ export default function CareerHQClient() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               
               {/* Priority lists (7 columns) */}
-              <div className="md:col-span-7 p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-4 shadow-xl">
+              <HoverCard className="md:col-span-7 p-6 space-y-4" glowColor="rgba(168, 85, 247, 0.12)">
                 <div className="flex items-center gap-1.5 border-b border-zinc-850 pb-2">
                   <Sparkles className="w-4 h-4 text-purple-400" />
                   <h3 className="text-xs uppercase font-bold text-zinc-200 font-mono">Smart Priority Engine</h3>
@@ -341,10 +344,10 @@ export default function CareerHQClient() {
                     );
                   })}
                 </div>
-              </div>
+              </HoverCard>
 
               {/* Risk Detector (5 columns) */}
-              <div className="md:col-span-5 p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-4 shadow-xl">
+              <HoverCard className="md:col-span-5 p-6 space-y-4" glowColor="rgba(244, 63, 94, 0.12)">
                 <div className="flex items-center gap-1.5 border-b border-zinc-850 pb-2">
                   <AlertCircle className="w-4 h-4 text-purple-400" />
                   <h3 className="text-xs uppercase font-bold text-zinc-200 font-mono">Career Risk Audit</h3>
@@ -356,14 +359,14 @@ export default function CareerHQClient() {
                       <div className="flex items-center justify-between text-[10px] font-bold text-rose-400">
                         <span>⚠️ Gap: {risk.issue}</span>
                       </div>
-                      <p className="text-[10px] text-zinc-500 font-light leading-normal">{risk.impact}</p>
+                      <p className="text-[10px] text-zinc-550 font-light leading-normal">{risk.impact}</p>
                       <div className="p-2 rounded bg-zinc-900/60 border border-zinc-850 text-[9px] text-zinc-300 font-light leading-relaxed">
                         <strong>Action Plan:</strong> {risk.action}
                       </div>
                     </div>
                   ))}
                 </div>
-              </div>
+              </HoverCard>
 
             </div>
 

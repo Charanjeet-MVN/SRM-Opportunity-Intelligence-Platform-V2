@@ -26,6 +26,9 @@ import {
   TrendingUp,
   Bookmark,
 } from "lucide-react";
+import HoverCard from "@/components/ui/HoverCard";
+import MagneticButton from "@/components/ui/MagneticButton";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface Milestone {
   id: string;
@@ -285,36 +288,36 @@ export default function StudentOperatingSystemClient() {
           >
             {/* Command metrics overview */}
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-              <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-850 space-y-2">
+              <HoverCard className="p-5" glowColor="rgba(168, 85, 247, 0.15)">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Career Index</span>
                 <div className="text-2xl font-black text-purple-400 font-mono">{dynamicStats.careerScore}%</div>
                 <div className="w-full bg-zinc-950 h-1 rounded-full overflow-hidden">
                   <div className="h-full bg-purple-500" style={{ width: `${dynamicStats.careerScore}%` }} />
                 </div>
-              </div>
+              </HoverCard>
 
-              <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-850 space-y-2">
+              <HoverCard className="p-5" glowColor="rgba(245, 158, 11, 0.15)">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Goals Handled</span>
                 <div className="text-2xl font-black text-amber-400 font-mono">
-                  {dynamicStats.completedGoals} <span className="text-xs text-zinc-550">/ {goalsList.length}</span>
+                  {dynamicStats.completedGoals} <span className="text-xs text-zinc-555">/ {goalsList.length}</span>
                 </div>
-                <span className="text-[9px] text-zinc-550 block font-light">
+                <span className="text-[9px] text-zinc-555 block font-light">
                   {goalsList.length > 0 ? Math.round((dynamicStats.completedGoals / goalsList.length) * 100) : 0}% completed
                 </span>
-              </div>
+              </HoverCard>
 
-              <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-850 space-y-2 col-span-2 sm:col-span-1">
+              <HoverCard className="p-5 col-span-2 sm:col-span-1" glowColor="rgba(16, 185, 129, 0.15)">
                 <span className="text-[9px] text-zinc-500 font-bold uppercase tracking-wider block">Vault Items</span>
                 <div className="text-2xl font-black text-emerald-400 font-mono">{DEFAULT_VAULT_ITEMS.length}</div>
-                <span className="text-[9px] text-zinc-550 block font-light">Verified campus certs & badges</span>
-              </div>
+                <span className="text-[9px] text-zinc-555 block font-light">Verified campus certs & badges</span>
+              </HoverCard>
             </div>
 
             {/* Smart Summaries & Productivity panel */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               
               {/* Smart Insights Panel (7 columns) */}
-              <div className="md:col-span-7 p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-4 shadow-xl">
+              <HoverCard className="md:col-span-7 p-6 space-y-4" glowColor="rgba(139, 92, 246, 0.12)">
                 <div className="flex items-center gap-1.5 border-b border-zinc-850 pb-2">
                   <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
                   <h3 className="text-xs uppercase font-bold text-zinc-200">Generative SOS Insights</h3>
@@ -335,10 +338,10 @@ export default function StudentOperatingSystemClient() {
                     </p>
                   </div>
                 </div>
-              </div>
+              </HoverCard>
 
               {/* Productivity Center (5 columns) */}
-              <div className="md:col-span-5 p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-4 shadow-xl">
+              <HoverCard className="md:col-span-5 p-6 space-y-4" glowColor="rgba(245, 158, 11, 0.12)">
                 <div className="flex items-center gap-1.5 border-b border-zinc-850 pb-2">
                   <Briefcase className="w-4 h-4 text-amber-400" />
                   <h3 className="text-xs uppercase font-bold text-zinc-200">Productivity Center</h3>
@@ -368,7 +371,7 @@ export default function StudentOperatingSystemClient() {
                     </Link>
                   </div>
                 </div>
-              </div>
+              </HoverCard>
 
             </div>
           </motion.div>

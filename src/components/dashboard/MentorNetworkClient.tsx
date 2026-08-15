@@ -29,6 +29,9 @@ import {
   Send,
   User,
 } from "lucide-react";
+import HoverCard from "@/components/ui/HoverCard";
+import MagneticButton from "@/components/ui/MagneticButton";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface ExpertTwin {
   id: string;
@@ -339,7 +342,7 @@ export default function MentorNetworkClient() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               
               {/* Twin Details & Career Roadmaps (7 columns) */}
-              <div className="md:col-span-7 p-6 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-5 shadow-xl">
+              <HoverCard className="md:col-span-7 p-6 space-y-5" glowColor="rgba(139, 92, 246, 0.12)">
                 <div>
                   <h3 className="text-xs uppercase font-mono text-zinc-400 font-semibold tracking-wider">
                     {activeTwin.name} Profile
@@ -392,10 +395,10 @@ export default function MentorNetworkClient() {
                     </div>
                   </div>
                 </div>
-              </div>
+              </HoverCard>
 
               {/* Generative Twin chat Console (5 columns) */}
-              <div className="md:col-span-5 p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 space-y-4 shadow-xl flex flex-col justify-between h-[450px]">
+              <HoverCard className="md:col-span-5 p-5 flex flex-col justify-between h-[450px]" glowColor="rgba(99, 102, 241, 0.12)">
                 <div className="flex items-center gap-1.5 border-b border-zinc-850 pb-2">
                   <MessageSquare className="w-4 h-4 text-purple-400" />
                   <span className="text-[10px] uppercase font-bold text-zinc-300">Twin Assistant</span>
@@ -430,7 +433,7 @@ export default function MentorNetworkClient() {
                     <Send className="w-4 h-4" />
                   </button>
                 </form>
-              </div>
+              </HoverCard>
 
             </div>
           </motion.div>

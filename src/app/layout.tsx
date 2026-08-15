@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
+import RouteTransition from "@/components/animation/RouteTransition";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -48,7 +49,14 @@ export default function RootLayout({
   return (
     <html lang="en" className={`dark ${inter.variable}`}>
       <body className="bg-zinc-950 text-zinc-100 antialiased font-sans selection:bg-indigo-500/30 selection:text-indigo-200">
-        {children}
+        <div className="relative min-h-screen overflow-x-hidden">
+          {/* Ambient Floating Gradient Lights */}
+          <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-900/10 blur-[120px] pointer-events-none" />
+          <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-900/10 blur-[120px] pointer-events-none" />
+          <div className="absolute top-[40%] right-[20%] w-[30%] h-[30%] rounded-full bg-purple-900/5 blur-[120px] pointer-events-none" />
+          
+          <RouteTransition>{children}</RouteTransition>
+        </div>
       </body>
     </html>
   );

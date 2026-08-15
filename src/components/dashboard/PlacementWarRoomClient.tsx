@@ -24,6 +24,9 @@ import {
   Play,
   CheckCircle,
 } from "lucide-react";
+import HoverCard from "@/components/ui/HoverCard";
+import MagneticButton from "@/components/ui/MagneticButton";
+import EmptyState from "@/components/ui/EmptyState";
 
 interface MockInterviewLog {
   id: string;
@@ -251,17 +254,17 @@ export default function PlacementWarRoomClient() {
       {/* ── PLACEMENT DASHBOARD METRICS STRIP ── */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "PLACEMENT READINESS", value: `${dynamicScores.placementReadiness}%`, desc: "Combined preparational vector", color: "text-purple-400 border-purple-500/20 bg-purple-500/10" },
-          { label: "RESUME ATS SCORE", value: `${dynamicScores.resumeScore}%`, desc: "Profile resume completeness", color: "text-indigo-400 border-indigo-500/20 bg-indigo-500/10" },
-          { label: "SKILLS COVERAGE", value: `${dynamicScores.skillScore}%`, desc: "Target stack mapping", color: "text-amber-400 border-amber-500/20 bg-amber-500/10" },
-          { label: "INTERVIEW MOCK RATIO", value: `${dynamicScores.interviewReadiness}%`, desc: "Preparational checkpoints", color: "text-rose-400 border-rose-500/20 bg-rose-500/10" },
-          { label: "PROJECTS DEPTH", value: `${dynamicScores.projectStrength}%`, desc: "Portfolio showcases density", color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10" }
+          { label: "PLACEMENT READINESS", value: `${dynamicScores.placementReadiness}%`, desc: "Combined preparational vector", color: "text-purple-400 border-purple-500/20 bg-purple-500/10", glow: "rgba(168, 85, 247, 0.15)" },
+          { label: "RESUME ATS SCORE", value: `${dynamicScores.resumeScore}%`, desc: "Profile resume completeness", color: "text-indigo-400 border-indigo-500/20 bg-indigo-500/10", glow: "rgba(99, 102, 241, 0.15)" },
+          { label: "SKILLS COVERAGE", value: `${dynamicScores.skillScore}%`, desc: "Target stack mapping", color: "text-amber-400 border-amber-500/20 bg-amber-500/10", glow: "rgba(245, 158, 11, 0.15)" },
+          { label: "INTERVIEW MOCK RATIO", value: `${dynamicScores.interviewReadiness}%`, desc: "Preparational checkpoints", color: "text-rose-400 border-rose-500/20 bg-rose-500/10", glow: "rgba(244, 63, 94, 0.15)" },
+          { label: "PROJECTS DEPTH", value: `${dynamicScores.projectStrength}%`, desc: "Portfolio showcases density", color: "text-emerald-400 border-emerald-500/20 bg-emerald-500/10", glow: "rgba(16, 185, 129, 0.15)" }
         ].map((card, i) => (
-          <div key={i} className={`p-4 rounded-2xl border ${card.color} space-y-2`}>
+          <HoverCard key={i} className={`p-4 border ${card.color} space-y-2`} glowColor={card.glow}>
             <span className="text-[9px] font-bold text-zinc-400 uppercase tracking-wide block">{card.label}</span>
             <div className="text-2xl font-black">{card.value}</div>
             <p className="text-[9px] text-zinc-550 leading-none">{card.desc}</p>
-          </div>
+          </HoverCard>
         ))}
       </div>
 
