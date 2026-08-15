@@ -10,6 +10,7 @@ import {
   updateClubVerificationAdminAction,
   updateOpportunityStatusAdminAction,
   updateUserRoleAdminAction,
+  EcosystemAnalyticsData,
 } from "@/lib/admin/actions";
 import { reviewVerificationAction } from "@/lib/clubs/actions";
 import { ClubVerificationRequest, ClubVerificationStatus, OpportunityStatus, UserRole } from "@/types";
@@ -28,6 +29,12 @@ import {
   ShieldAlert,
   AlertCircle,
   Loader2,
+  BarChart3,
+  Activity,
+  TrendingUp,
+  Sparkles,
+  Award,
+  Bookmark,
 } from "lucide-react";
 
 type ExtendedVerificationRequest = ClubVerificationRequest & {
@@ -56,6 +63,7 @@ interface AdminControlCenterClientProps {
   clubs: AdminClubRecord[];
   opportunities: AdminOpportunityRecord[];
   users: AdminUserRecord[];
+  ecosystemAnalytics: EcosystemAnalyticsData | null;
 }
 
 const staggerContainer = {
@@ -77,8 +85,9 @@ export default function AdminControlCenterClient({
   clubs: initialClubs,
   opportunities: initialOpps,
   users: initialUsers,
+  ecosystemAnalytics,
 }: AdminControlCenterClientProps) {
-  const [activeTab, setActiveTab] = useState<"overview" | "verifications" | "clubs" | "opportunities" | "users" | "reports">("overview");
+  const [activeTab, setActiveTab] = useState<"overview" | "verifications" | "clubs" | "opportunities" | "users" | "reports" | "analytics">("overview");
   const [searchQuery, setSearchQuery] = useState("");
 
   const [requestsList, setRequestsList] = useState(initialRequests);
@@ -267,6 +276,7 @@ export default function AdminControlCenterClient({
         <div className="flex items-center gap-1.5 p-1.5 rounded-2xl bg-zinc-900/80 border border-zinc-800 overflow-x-auto scrollbar-none">
           {[
             { id: "overview" as const, label: "Overview & Trust", icon: ShieldCheck, count: null },
+            { id: "analytics" as const, label: "Ecosystem Analytics", icon: BarChart3, count: null },
             { id: "verifications" as const, label: "Verification Queue", icon: FileCheck, count: requestsList.filter((r) => r.status === "pending_review").length },
             { id: "clubs" as const, label: "Organizations", icon: Building2, count: filteredClubs.length },
             { id: "opportunities" as const, label: "Opportunities", icon: Layers, count: filteredOpps.length },
@@ -400,6 +410,148 @@ export default function AdminControlCenterClient({
                 </div>
               </div>
             </div>
+          </motion.div>
+        )}
+
+        {/* ECOSYSTEM ANALYTICS TAB */}
+        {activeTab === "analytics" && (
+          <motion.div
+            key="analytics"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="space-y-6"
+          >
+            {/* KPI Cards */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              {[
+                { label: "Total Bookmarks", value: ecosystemAnalytics?.activitySummary.totalSaves ?? 0, sub: "Student save actions", icon: Bookmark, accent: "text-indigo-400", bg: "bg-indigo-500/8 border-indigo-500/20" },
+                { label: "Total Registrations", value: ecosystemAnalytics?.activitySummary.totalRegistrations ?? 0, sub: "Form submissions", icon: CheckCircle2, accent: "text-emerald-400", bg: "bg-emerald-500/8 border-emerald-500/20" },
+                { label: "Completed Events", value: ecosystemAnalytics?.activitySummary.totalCompleted ?? 0, sub: "Attendance check-ins", icon: Award, accent: "text-purple-400", bg: "bg-purple-500/8 border-purple-500/20" },
+                { label: "Verification Ratio", value: metrics?.totalClubs ? `${Math.round((metrics.verifiedClubs / metrics.totalClubs) * 100)}%` : "0%", sub: `${metrics?.verifiedClubs ?? 0} verified orgs`, icon: ShieldCheck, accent: "text-blue-400", bg: "bg-blue-500/8 border-blue-500/20" },
+              ].map((card) => {
+                const Icon = card.icon;
+                return (
+                  <div key={card.label} className={`p-5 rounded-2xl ${card.bg} border space-y-2 relative overflow-hidden`}>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] font-mono text-zinc-300 font-semibold">{card.label}</span>
+                      <Icon className={`w-4 h-4 ${card.accent}`} />
+                    </div>
+                    <div className={`text-2xl font-black font-mono ${card.accent}`}>{card.value}</div>
+                    <p className="text-[10px] text-zinc-500 font-mono leading-none">{card.sub}</p>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Timelines / Growth Trends Selection */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2 p-6 rounded-3xl bg-zinc-950/60 border border-zinc-800/80 space-y-6 shadow-xl">
+                <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
+                  Platform Historical Growth Trends
+                </h3>
+                {ecosystemAnalytics ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <EcosystemGrowthChart
+                      data={ecosystemAnalytics.timeline.map(pt => ({ label: pt.date, value: pt.signups }))}
+                      title="User registrations growth"
+                      strokeColor="#818cf8"
+                      fillColor="rgba(99, 102, 241, 0.08)"
+                    />
+                    <EcosystemGrowthChart
+                      data={ecosystemAnalytics.timeline.map(pt => ({ label: pt.date, value: pt.opportunities }))}
+                      title="Published campaigns growth"
+                      strokeColor="#a78bfa"
+                      fillColor="rgba(168, 85, 247, 0.08)"
+                    />
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-xs font-mono text-zinc-500">No trend history available.</div>
+                )}
+              </div>
+
+              {/* Ratios & types breakdown */}
+              <div className="p-6 rounded-3xl bg-zinc-950/60 border border-zinc-800/80 space-y-6 shadow-xl">
+                <h3 className="text-xs font-bold text-zinc-200 uppercase tracking-wider">
+                  Post Categories Ratios
+                </h3>
+                {ecosystemAnalytics && ecosystemAnalytics.opportunityTypeDistribution.length > 0 ? (
+                  <div className="space-y-3">
+                    {ecosystemAnalytics.opportunityTypeDistribution.slice(0, 6).map(item => (
+                      <div key={item.type} className="space-y-1 text-xs">
+                        <div className="flex justify-between font-mono">
+                          <span className="text-zinc-400 capitalize">{item.type.replace("_", " ")}</span>
+                          <span className="text-purple-400 font-semibold">{item.count} posts</span>
+                        </div>
+                        <div className="w-full h-1 bg-zinc-900 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-purple-500 rounded-full"
+                            style={{
+                              width: `${(item.count / Math.max(...ecosystemAnalytics.opportunityTypeDistribution.map(o => o.count), 1)) * 100}%`
+                            }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="py-8 text-center text-xs font-mono text-zinc-500">No category breakdown logged.</div>
+                )}
+              </div>
+            </div>
+
+            {/* Dynamic Insights Panel */}
+            {ecosystemAnalytics && (
+              <div className="p-6 rounded-3xl bg-zinc-950/60 border border-zinc-800/80 space-y-4 shadow-xl">
+                <div className="flex items-center gap-2">
+                  <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+                  <h3 className="text-xs uppercase font-mono text-zinc-200 font-bold tracking-wider">
+                    Ecosystem Health Audit
+                  </h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 text-xs font-light text-zinc-300 leading-relaxed flex items-start gap-2.5">
+                    <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0 mt-1.5" />
+                    <span>
+                      Ecosystem engagement factor: There are{" "}
+                      <strong className="text-indigo-400 font-mono">
+                        {Math.round((ecosystemAnalytics.activitySummary.totalSaves / (metrics?.publishedOpps || 1)) * 10) / 10}
+                      </strong>{" "}
+                      bookmarks and{" "}
+                      <strong className="text-emerald-400 font-mono">
+                        {Math.round((ecosystemAnalytics.activitySummary.totalRegistrations / (metrics?.publishedOpps || 1)) * 10) / 10}
+                      </strong>{" "}
+                      registrations per published opportunity.
+                    </span>
+                  </div>
+                  {metrics && metrics.totalClubs > 0 && (
+                    <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 text-xs font-light text-zinc-300 leading-relaxed flex items-start gap-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0 mt-1.5" />
+                      <span>
+                        Organization quality rating:{" "}
+                        <strong className="text-blue-400 font-mono">
+                          {Math.round((metrics.verifiedClubs / metrics.totalClubs) * 100)}%
+                        </strong>{" "}
+                        of all clubs on the platform are verified with official faculty credentials.
+                      </span>
+                    </div>
+                  )}
+                  {ecosystemAnalytics.activitySummary.totalRegistrations > 0 && (
+                    <div className="p-4 rounded-xl bg-zinc-900/40 border border-zinc-800/80 text-xs font-light text-zinc-300 leading-relaxed flex items-start gap-2.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-purple-500 shrink-0 mt-1.5" />
+                      <span>
+                        Verified completion conversion:{" "}
+                        <strong className="text-purple-400 font-mono">
+                          {Math.round((ecosystemAnalytics.activitySummary.totalCompleted / ecosystemAnalytics.activitySummary.totalRegistrations) * 100)}%
+                        </strong>{" "}
+                        of all registered students successfully attended their events.
+                      </span>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -900,6 +1052,113 @@ function AdminEmptyState({ title, description }: { title: string; description: s
       <ShieldCheck className="w-8 h-8 text-zinc-600 mx-auto" />
       <h3 className="text-sm font-semibold text-zinc-300">{title}</h3>
       <p className="text-xs text-zinc-500 leading-relaxed font-mono">{description}</p>
+    </div>
+  );
+}
+
+function EcosystemGrowthChart({
+  data,
+  title,
+  strokeColor = "#c084fc",
+  fillColor = "rgba(168, 85, 247, 0.15)",
+}: {
+  data: { label: string; value: number }[];
+  title: string;
+  strokeColor?: string;
+  fillColor?: string;
+}) {
+  if (data.length < 2) {
+    return (
+      <div className="h-44 rounded-xl bg-zinc-950 border border-zinc-900/60 flex flex-col items-center justify-center text-center p-4">
+        <Activity className="w-6 h-6 text-zinc-700 mb-1" />
+        <p className="text-[11px] font-mono text-zinc-500">Insufficient cumulative points to chart trend</p>
+      </div>
+    );
+  }
+
+  const width = 500;
+  const height = 150;
+  const paddingX = 40;
+  const paddingY = 20;
+
+  const maxVal = Math.max(...data.map((d) => d.value), 1);
+  const chartWidth = width - paddingX * 2;
+  const chartHeight = height - paddingY * 2;
+
+  const points = data.map((d, i) => {
+    const x = paddingX + (i * chartWidth) / (data.length - 1);
+    const y = height - paddingY - (d.value * chartHeight) / maxVal;
+    return { x, y, label: d.label };
+  });
+
+  const linePath = points.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
+  const areaPath = `${linePath} L ${points[points.length - 1].x} ${height - paddingY} L ${points[0].x} ${height - paddingY} Z`;
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex justify-between items-center text-[10px] font-mono text-zinc-500">
+        <span>{title}</span>
+        <span>cumulative growth</span>
+      </div>
+      <div className="bg-zinc-950 p-2 rounded-xl border border-zinc-900/80">
+        <svg viewBox={`0 0 ${width} ${height}`} className="w-full h-auto overflow-visible">
+          {/* Grid */}
+          {[0, 0.5, 1].map((ratio, idx) => {
+            const y = paddingY + ratio * chartHeight;
+            return (
+              <line
+                key={idx}
+                x1={paddingX}
+                y1={y}
+                x2={width - paddingX}
+                y2={y}
+                stroke="#1f1f22"
+                strokeWidth={1}
+                strokeDasharray="4 4"
+              />
+            );
+          })}
+          {/* Area */}
+          <path d={areaPath} fill={fillColor} />
+          {/* Line */}
+          <motion.path
+            d={linePath}
+            fill="none"
+            stroke={strokeColor}
+            strokeWidth={2.5}
+            initial={{ pathLength: 0 }}
+            animate={{ pathLength: 1 }}
+            transition={{ duration: 0.8 }}
+          />
+          {/* Labels */}
+          <text x={paddingX - 10} y={paddingY + 3} fill="#71717a" fontSize={8} textAnchor="end" fontFamily="monospace">
+            {maxVal}
+          </text>
+          <text x={paddingX - 10} y={height - paddingY + 3} fill="#71717a" fontSize={8} textAnchor="end" fontFamily="monospace">
+            0
+          </text>
+          {points.map((p, idx) => {
+            if (idx === 0 || idx === points.length - 1 || data.length <= 6) {
+              const d = new Date(p.label);
+              const lbl = d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+              return (
+                <text
+                  key={idx}
+                  x={p.x}
+                  y={height - 5}
+                  fill="#52525b"
+                  fontSize={8}
+                  textAnchor="middle"
+                  fontFamily="monospace"
+                >
+                  {lbl}
+                </text>
+              );
+            }
+            return null;
+          })}
+        </svg>
+      </div>
     </div>
   );
 }

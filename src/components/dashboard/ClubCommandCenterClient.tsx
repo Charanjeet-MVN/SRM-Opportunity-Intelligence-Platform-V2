@@ -417,9 +417,11 @@ export default function ClubCommandCenterClient({
                         className="group flex items-center gap-4 p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-zinc-700 transition-all"
                       >
                         <div className="flex-1 min-w-0 space-y-0.5">
-                          <h3 className="text-xs font-semibold text-zinc-200 truncate group-hover:text-indigo-300 transition-colors">
-                            {opp.title}
-                          </h3>
+                          <Link href={`/dashboard/club/opportunities/${opp.slug}/analytics`}>
+                            <h3 className="text-xs font-semibold text-zinc-200 truncate hover:text-purple-400 transition-colors cursor-pointer">
+                              {opp.title}
+                            </h3>
+                          </Link>
                           <div className="flex items-center gap-2 text-[10px] font-mono text-zinc-500">
                             <span className="capitalize">{opp.type.replace("_", " ")}</span>
                             <span>•</span>
@@ -428,17 +430,17 @@ export default function ClubCommandCenterClient({
                             </span>
                           </div>
                         </div>
-                        <div className="shrink-0 text-right font-mono">
-                          <div className="text-sm font-bold text-indigo-400">{opp.savedCount}</div>
-                          <div className="text-[10px] text-zinc-500">saves</div>
-                        </div>
-                        <div className="shrink-0 w-24 h-1.5 rounded-full bg-zinc-950 overflow-hidden">
-                          <div
-                            className="h-full bg-indigo-500 rounded-full"
-                            style={{
-                              width: `${Math.min(100, (opp.savedCount / Math.max(...(analytics?.opportunityPerformance || []).map((o) => o.savedCount), 1)) * 100)}%`,
-                            }}
-                          />
+                        <div className="shrink-0 text-right font-mono flex items-center gap-3">
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-bold text-indigo-400">{opp.savedCount} Saves</div>
+                            <div className="text-[9px] text-zinc-500">{opp.registeredCount} Regs</div>
+                          </div>
+                          <Link
+                            href={`/dashboard/club/opportunities/${opp.slug}/analytics`}
+                            className="px-2.5 py-1.5 rounded-lg bg-zinc-950 border border-zinc-800 text-[10px] font-semibold text-zinc-300 hover:text-purple-400 hover:border-purple-500/30 transition-colors"
+                          >
+                            Analyze
+                          </Link>
                         </div>
                       </motion.div>
                     ))}
@@ -629,12 +631,23 @@ function OpportunityManagementRow({
 
         {/* View link */}
         <Link
-          href={`/opportunities`}
+          href={`/opportunities/${opp.slug}`}
           className="p-1.5 rounded-lg text-zinc-500 hover:text-indigo-400 hover:bg-zinc-800 transition-colors"
           title="View on platform"
         >
           <ExternalLink className="w-3.5 h-3.5" />
         </Link>
+
+        {/* Analytics link */}
+        {currentStatus === "published" && (
+          <Link
+            href={`/dashboard/club/opportunities/${opp.slug}/analytics`}
+            className="p-1.5 rounded-lg text-zinc-500 hover:text-purple-400 hover:bg-zinc-800 transition-colors"
+            title="View Performance Analytics"
+          >
+            <BarChart3 className="w-3.5 h-3.5" />
+          </Link>
+        )}
 
         {/* Action Menu Dropdown / Confirmation Toggle */}
         <div className="relative">

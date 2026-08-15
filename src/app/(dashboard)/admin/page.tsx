@@ -6,6 +6,7 @@ import {
   getAllClubsAdminAction,
   getAllOpportunitiesAdminAction,
   getAllUsersAdminAction,
+  getEcosystemAnalyticsAction,
 } from "@/lib/admin/actions";
 import { getPendingVerificationsAction } from "@/lib/clubs/actions";
 import AdminControlCenterClient from "@/components/dashboard/AdminControlCenterClient";
@@ -26,19 +27,21 @@ export default async function AdminDashboardPage() {
     redirect("/dashboard/student");
   }
 
-  // Fetch real platform metrics & moderation records in parallel
+  // Fetch real platform metrics, moderation records, and ecosystem analytics in parallel
   const [
     { metrics },
     { requests },
     { clubs },
     { opportunities },
     { users },
+    { analytics: ecosystemAnalytics },
   ] = await Promise.all([
     getAdminMetricsAction(),
     getPendingVerificationsAction(),
     getAllClubsAdminAction(),
     getAllOpportunitiesAdminAction(),
     getAllUsersAdminAction(),
+    getEcosystemAnalyticsAction(),
   ]);
 
   return (
@@ -48,6 +51,7 @@ export default async function AdminDashboardPage() {
       clubs={clubs || []}
       opportunities={opportunities || []}
       users={users || []}
+      ecosystemAnalytics={ecosystemAnalytics || null}
     />
   );
 }

@@ -351,3 +351,143 @@ export async function updateUserRoleAdminAction(
   revalidatePath("/dashboard/admin");
   return { success: true };
 }
+
+export interface EcosystemTimelinePoint {
+  date: string;
+  signups: number;
+  opportunities: number;
+  registrations: number;
+}
+
+export interface EcosystemAnalyticsData {
+  timeline: EcosystemTimelinePoint[];
+  opportunityTypeDistribution: { type: string; count: number }[];
+  clubVerificationStatus: { status: string; count: number }[];
+  activitySummary: {
+    totalSaves: number;
+    totalRegistrations: number;
+    totalCompleted: number;
+  };
+}
+
+/**
+ * Server Action: Fetches platform-wide historical growth and interaction trends for Super Admin
+ */
+export async function getEcosystemAnalyticsAction(): Promise<{
+  analytics: EcosystemAnalyticsData | null;
+  error?: string;
+}> {
+  const authCheck = await verifySuperAdmin();
+  if (!authCheck.isSuperAdmin) return { analytics: null, error: authCheck.error };
+
+  const supabase = await createClient();
+
+  const [
+    { data: usersData, error: usersError },
+    { data: oppsData, error: oppsError },
+    { data: regsData, error: regsError },
+    { data: savesData, error: savesError },
+    { data: clubsData, error: clubsError },
+  ] = await Promise.all([
+    supabase.from("users").select("created_at, role"),
+    supabase.from("opportunities").select("created_at, status, type"),
+    supabase.from("registrations").select("registered_at, status"),
+    supabase.from("saved_opportunities").select("created_at"),
+    supabase.from("clubs").select("verification_status, created_at"),
+  ]);
+
+  if (usersError || oppsError || regsError || savesError || clubsError) {
+    return {
+      analytics: null,
+      error: "Failed to load platform-wide analytics data from Supabase.",
+    };
+  }
+
+  const usersList = usersData || [];
+  const oppsList = oppsData || [];
+  const regsList = regsData || [];
+  const savesList = savesData || [];
+  const clubsList = clubsData || [];
+
+  // Group events by date to construct chronological trend points
+  const datesSet = new Set<string>();
+  const signupsMap: Record<string, number> = {};
+  const oppsMap: Record<string, number> = {};
+  const regsMap: Record<string, number> = {};
+
+  usersList.forEach((u) => {
+    const d = u.created_at.split("T")[0];
+    datesSet.add(d);
+    signupsMap[d] = (signupsMap[d] || 0) + 1;
+  });
+
+  oppsList.forEach((o) => {
+    if (o.status === "published") {
+      const d = o.created_at.split("T")[0];
+      datesSet.add(d);
+      oppsMap[d] = (oppsMap[d] || 0) + 1;
+    }
+  });
+
+  regsList.forEach((r) => {
+    const d = r.registered_at.split("T")[0];
+    datesSet.add(d);
+    regsMap[d] = (regsMap[d] || 0) + 1;
+  });
+
+  const sortedDates = Array.from(datesSet).sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+  
+  let cumSignups = 0;
+  let cumOpps = 0;
+  let cumRegs = 0;
+
+  const timeline = sortedDates.map((date) => {
+    cumSignups += signupsMap[date] || 0;
+    cumOpps += oppsMap[date] || 0;
+    cumRegs += regsMap[date] || 0;
+    return {
+      date,
+      signups: cumSignups,
+      opportunities: cumOpps,
+      registrations: cumRegs,
+    };
+  });
+
+  // Opportunity Type Distribution
+  const typeMap: Record<string, number> = {};
+  oppsList.forEach((o) => {
+    typeMap[o.type] = (typeMap[o.type] || 0) + 1;
+  });
+  const opportunityTypeDistribution = Object.entries(typeMap).map(([type, count]) => ({
+    type,
+    count,
+  }));
+
+  // Club Verification Status
+  const verificationMap: Record<string, number> = {};
+  clubsList.forEach((c) => {
+    verificationMap[c.verification_status] = (verificationMap[c.verification_status] || 0) + 1;
+  });
+  const clubVerificationStatus = Object.entries(verificationMap).map(([status, count]) => ({
+    status,
+    count,
+  }));
+
+  // Activity Summary
+  const totalSaves = savesList.length;
+  const totalRegistrations = regsList.length;
+  const totalCompleted = regsList.filter((r) => r.status === "attended").length;
+
+  return {
+    analytics: {
+      timeline,
+      opportunityTypeDistribution,
+      clubVerificationStatus,
+      activitySummary: {
+        totalSaves,
+        totalRegistrations,
+        totalCompleted,
+      },
+    },
+  };
+}

@@ -20,6 +20,7 @@ import {
   Plus,
   ChevronDown,
   Sparkles,
+  BarChart3,
 } from "lucide-react";
 
 interface GlobalHeaderProps {
@@ -82,6 +83,10 @@ export default function GlobalHeader({
                     <Bookmark className="w-3.5 h-3.5 text-zinc-400" />
                     <span>Saved</span>
                   </NavLink>
+                  <NavLink href="/dashboard/student/analytics" active={pathname === "/dashboard/student/analytics"}>
+                    <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Impact Center</span>
+                  </NavLink>
                 </>
               )}
 
@@ -94,6 +99,10 @@ export default function GlobalHeader({
                   <NavLink href="/dashboard/club/opportunities/new" active={pathname.includes("/new")}>
                     <Plus className="w-3.5 h-3.5 text-emerald-400" />
                     <span>Publish Opp</span>
+                  </NavLink>
+                  <NavLink href="/dashboard/club/analytics" active={pathname === "/dashboard/club/analytics"}>
+                    <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Analytics</span>
                   </NavLink>
                 </>
               )}
