@@ -121,6 +121,10 @@ export default function GlobalHeader({
                     <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
                     <span>War Room</span>
                   </NavLink>
+                  <NavLink href="/dashboard/student/autopilot" active={pathname === "/dashboard/student/autopilot"}>
+                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Autopilot</span>
+                  </NavLink>
                 </>
               )}
 
