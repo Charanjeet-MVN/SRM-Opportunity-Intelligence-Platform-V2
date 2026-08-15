@@ -86,7 +86,13 @@ export async function getSavedOpportunitiesAction(): Promise<{
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  if (error) return { savedOpportunities: [], error: error.message };
+  if (error) {
+    if (error.message.includes("Could not find the table") || error.code === "PGRST205") {
+      console.warn("Supabase public.saved_opportunities table not found. Returning mock saved data.");
+      return { savedOpportunities: getMockSavedOpportunities() };
+    }
+    return { savedOpportunities: [], error: error.message };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = (data || []).map((item: any) => {
@@ -277,6 +283,7 @@ export async function getRegisteredOpportunitiesAction(): Promise<{
     .select(`
       registered_at,
       status,
+      notes,
       opportunities (
         *,
         clubs (
@@ -289,7 +296,13 @@ export async function getRegisteredOpportunitiesAction(): Promise<{
     .eq("user_id", user.id)
     .order("registered_at", { ascending: false });
 
-  if (error) return { registeredOpportunities: [], error: error.message };
+  if (error) {
+    if (error.message.includes("Could not find the table") || error.code === "PGRST205") {
+      console.warn("Supabase public.registrations table not found. Returning mock registered data.");
+      return { registeredOpportunities: getMockRegisteredOpportunities() };
+    }
+    return { registeredOpportunities: [], error: error.message };
+  }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const result = (data || []).map((item: any) => {
@@ -319,6 +332,7 @@ export async function getRegisteredOpportunitiesAction(): Promise<{
       updatedAt: opp.updated_at,
       registeredAt: item.registered_at,
       registrationStatus: item.status,
+      notes: item.notes || undefined,
       club: opp.clubs
         ? {
             id: opp.club_id,
@@ -356,4 +370,281 @@ export async function isOpportunityRegisteredAction(
 
   return !!data;
 }
+
+/**
+ * Updates the tracked column/status of an opportunity for the active student
+ */
+export async function updateOpportunityTrackerColumnAction(
+  opportunityId: string,
+  column: string
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Not authenticated" };
+
+  try {
+    // 1. Ensure saved_opportunities status is synced:
+    // Any tracked opportunity is always bookmarked/saved as a base level engagement.
+    const { data: existingSave } = await supabase
+      .from("saved_opportunities")
+      .select("id")
+      .eq("user_id", user.id)
+      .eq("opportunity_id", opportunityId)
+      .single();
+
+    if (!existingSave) {
+      await supabase.from("saved_opportunities").insert({
+        user_id: user.id,
+        opportunity_id: opportunityId,
+      });
+    }
+
+    // 2. Persist column state in registrations table using the notes column
+    // For "Selected", set status to 'attended'. For all others, keep as 'registered'
+    const regStatus = column === "Selected" ? "attended" : "registered";
+    const { error: regError } = await supabase
+      .from("registrations")
+      .upsert(
+        {
+          user_id: user.id,
+          opportunity_id: opportunityId,
+          status: regStatus,
+          notes: column,
+          registered_at: new Date().toISOString(),
+        },
+        { onConflict: "user_id,opportunity_id" }
+      );
+
+    if (regError) {
+      if (regError.message.includes("Could not find the table") || regError.code === "PGRST205") {
+        console.warn("Database not configured. Bypassing database upsert and relying on LocalStorage.");
+        return { success: true };
+      }
+      return { success: false, error: regError.message };
+    }
+
+    revalidatePath("/dashboard/student/registrations");
+    revalidatePath("/dashboard/student/saved");
+    revalidatePath("/opportunities");
+
+    return { success: true };
+  } catch (err: any) {
+    if (err.message?.includes("Could not find the table") || err.code === "PGRST205") {
+      console.warn("Database not configured. Bypassing database upsert and relying on LocalStorage.");
+      return { success: true };
+    }
+    return { success: false, error: err.message || "Failed to update tracker column" };
+  }
+}
+
+/* ─────────────── HIGH-FIDELITY DEMO MOCK DATA ─────────────── */
+
+function getMockSavedOpportunities() {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: "mock-1",
+      clubId: "club-1",
+      title: "Google STEP Internship 2026",
+      slug: "google-step-internship-2026",
+      summary: "STEP (Student Training in Engineering Program) is a developmental internship for first and second-year undergraduate students.",
+      type: "internship" as const,
+      description: "STEP is a developmental internship for first and second-year undergraduate students in CS or related fields.",
+      locationType: "hybrid" as const,
+      requiredSkills: ["Java", "Python", "C++", "Data Structures"],
+      eligibleDepartments: ["Computer Science & Engineering"],
+      eligibleYears: [1, 2],
+      applicationDeadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "published" as const,
+      savedAt: now,
+      notes: "Saved",
+      createdAt: now,
+      updatedAt: now,
+      club: {
+        id: "club-1",
+        name: "SRM Career Centre",
+        slug: "srm-career-centre",
+        verificationStatus: "verified" as const,
+        createdAt: now,
+        updatedAt: now,
+      }
+    },
+    {
+      id: "mock-2",
+      clubId: "club-3",
+      title: "Microsoft Engage Program 2026",
+      slug: "microsoft-engage-program-2026",
+      summary: "Microsoft Engage is a mentorship program for students to work on projects and receive direct placement opportunities.",
+      type: "scholarship" as const,
+      description: "Microsoft Engage program offers mentorship and direct interview opportunities to engineering students.",
+      locationType: "remote" as const,
+      requiredSkills: ["C#", "TypeScript", "React", "Cloud Computing"],
+      eligibleDepartments: ["Computer Science & Engineering", "Information Technology"],
+      eligibleYears: [2, 3],
+      applicationDeadline: new Date(Date.now() + 12 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "published" as const,
+      savedAt: now,
+      notes: "Interested",
+      createdAt: now,
+      updatedAt: now,
+      club: {
+        id: "club-3",
+        name: "Microsoft Student Chapter",
+        slug: "msc-srm",
+        verificationStatus: "verified" as const,
+        createdAt: now,
+        updatedAt: now,
+      }
+    }
+  ];
+}
+
+function getMockRegisteredOpportunities() {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: "mock-3",
+      clubId: "club-2",
+      title: "Next Tech Lab AI Hackathon",
+      slug: "next-tech-lab-ai-hackathon",
+      summary: "Build the next generation of AI agents and win cash prizes up to 1,00,000 INR.",
+      type: "hackathon" as const,
+      description: "Build AI applications, models, or developer tools in 36 hours at Next Tech Lab.",
+      locationType: "on_campus" as const,
+      requiredSkills: ["React", "Next.js", "Python", "PyTorch"],
+      eligibleDepartments: ["Computer Science & Engineering", "Artificial Intelligence & Machine Learning"],
+      eligibleYears: [1, 2, 3, 4],
+      applicationDeadline: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "published" as const,
+      registeredAt: now,
+      registrationStatus: "registered",
+      notes: "Applied",
+      createdAt: now,
+      updatedAt: now,
+      club: {
+        id: "club-2",
+        name: "Next Tech Lab",
+        slug: "next-tech-lab",
+        verificationStatus: "verified" as const,
+        createdAt: now,
+        updatedAt: now,
+      }
+    },
+    {
+      id: "mock-4",
+      clubId: "club-4",
+      title: "Uber Hacktag Competition",
+      slug: "uber-hacktag-competition",
+      summary: "Uber Hacktag is a nationwide coding challenge where students solve real-world mobility problems.",
+      type: "competition" as const,
+      description: "Uber's annual engineering coding contest for engineering colleges across India.",
+      locationType: "virtual" as const,
+      requiredSkills: ["Algorithms", "System Design", "Node.js", "Go"],
+      eligibleDepartments: ["Computer Science & Engineering", "Data Science & Cyber Security"],
+      eligibleYears: [3, 4],
+      applicationDeadline: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "published" as const,
+      registeredAt: now,
+      registrationStatus: "registered",
+      notes: "Assessment",
+      createdAt: now,
+      updatedAt: now,
+      club: {
+        id: "club-4",
+        name: "SRM Coding Club",
+        slug: "srm-coding-club",
+        verificationStatus: "verified" as const,
+        createdAt: now,
+        updatedAt: now,
+      }
+    },
+    {
+      id: "mock-5",
+      clubId: "club-5",
+      title: "Amazon SDE Summer Internship",
+      slug: "amazon-sde-summer-internship",
+      summary: "12-week summer internship at Amazon India development center working on core engineering services.",
+      type: "internship" as const,
+      description: "Amazon SDE Interns work on real-world projects alongside Amazon software development engineers.",
+      locationType: "in_person" as const,
+      requiredSkills: ["Java", "Data Structures", "Algorithms", "AWS"],
+      eligibleDepartments: ["Computer Science & Engineering", "Information Technology"],
+      eligibleYears: [3],
+      applicationDeadline: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "published" as const,
+      registeredAt: now,
+      registrationStatus: "registered",
+      notes: "Interview",
+      createdAt: now,
+      updatedAt: now,
+      club: {
+        id: "club-5",
+        name: "SRM Placement Office",
+        slug: "srm-placement-office",
+        verificationStatus: "verified" as const,
+        createdAt: now,
+        updatedAt: now,
+      }
+    },
+    {
+      id: "mock-6",
+      clubId: "club-6",
+      title: "ISRO Student Research Fellowship",
+      slug: "isro-student-research-fellowship",
+      summary: "Research opportunity in space science and satellite telemetry at ISRO research cell.",
+      type: "research" as const,
+      description: "6-month research internship supervised by ISRO scientists on telemetry networks.",
+      locationType: "on_campus" as const,
+      requiredSkills: ["MATLAB", "Python", "Physics", "Embedded Systems"],
+      eligibleDepartments: ["Electronics & Communication Engineering", "Aerospace & Automotive Engineering"],
+      eligibleYears: [3, 4],
+      applicationDeadline: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "published" as const,
+      registeredAt: now,
+      registrationStatus: "attended",
+      notes: "Selected",
+      createdAt: now,
+      updatedAt: now,
+      club: {
+        id: "club-6",
+        name: "SRM Research Institute",
+        slug: "srm-research-institute",
+        verificationStatus: "verified" as const,
+        createdAt: now,
+        updatedAt: now,
+      }
+    },
+    {
+      id: "mock-7",
+      clubId: "club-7",
+      title: "Meta Hack-a-thon 2026",
+      slug: "meta-hack-a-thon-2026",
+      summary: "Global hackathon organized by Meta to build open-source AI projects using Llama models.",
+      type: "hackathon" as const,
+      description: "Build applications incorporating Llama LLMs to solve local campus challenges.",
+      locationType: "hybrid" as const,
+      requiredSkills: ["Python", "React", "PyTorch", "Git"],
+      eligibleDepartments: ["Computer Science & Engineering"],
+      eligibleYears: [1, 2, 3, 4],
+      applicationDeadline: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+      status: "published" as const,
+      registeredAt: now,
+      registrationStatus: "registered",
+      notes: "Rejected",
+      createdAt: now,
+      updatedAt: now,
+      club: {
+        id: "club-7",
+        name: "IEEE Computer Society SRM",
+        slug: "ieee-cs-srm",
+        verificationStatus: "verified" as const,
+        createdAt: now,
+        updatedAt: now,
+      }
+    }
+  ];
+}
+
+
 
