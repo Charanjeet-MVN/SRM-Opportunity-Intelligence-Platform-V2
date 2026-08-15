@@ -117,6 +117,10 @@ export default function GlobalHeader({
                     <Layers className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Student OS</span>
                   </NavLink>
+                  <NavLink href="/dashboard/student/war-room" active={pathname === "/dashboard/student/war-room"}>
+                    <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
+                    <span>War Room</span>
+                  </NavLink>
                 </>
               )}
 
