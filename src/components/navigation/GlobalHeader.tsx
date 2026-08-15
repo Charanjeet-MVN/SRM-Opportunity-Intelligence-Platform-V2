@@ -125,6 +125,10 @@ export default function GlobalHeader({
                     <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                     <span>Autopilot</span>
                   </NavLink>
+                  <NavLink href="/dashboard/student/mentors" active={pathname === "/dashboard/student/mentors"}>
+                    <Compass className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Mentors</span>
+                  </NavLink>
                 </>
               )}
 
