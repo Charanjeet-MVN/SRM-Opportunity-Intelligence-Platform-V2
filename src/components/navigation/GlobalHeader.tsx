@@ -25,6 +25,7 @@ import {
   FileText,
   Cpu,
   Layout,
+  TrendingUp,
 } from "lucide-react";
 
 interface GlobalHeaderProps {
@@ -106,6 +107,10 @@ export default function GlobalHeader({
                   <NavLink href="/dashboard/student/analytics" active={pathname === "/dashboard/student/analytics"}>
                     <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Impact Center</span>
+                  </NavLink>
+                  <NavLink href="/dashboard/student/opportunity-intelligence" active={pathname === "/dashboard/student/opportunity-intelligence"}>
+                    <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Opportunity Terminal</span>
                   </NavLink>
                 </>
               )}
