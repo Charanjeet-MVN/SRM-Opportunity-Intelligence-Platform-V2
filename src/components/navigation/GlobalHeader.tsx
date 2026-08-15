@@ -129,6 +129,10 @@ export default function GlobalHeader({
                     <Compass className="w-3.5 h-3.5 text-indigo-400" />
                     <span>Mentors</span>
                   </NavLink>
+                  <NavLink href="/dashboard/student/career-hq" active={pathname === "/dashboard/student/career-hq"}>
+                    <Layout className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Career HQ</span>
+                  </NavLink>
                 </>
               )}
 
