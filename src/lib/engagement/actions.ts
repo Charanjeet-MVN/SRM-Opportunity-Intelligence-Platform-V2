@@ -429,12 +429,13 @@ export async function updateOpportunityTrackerColumnAction(
     revalidatePath("/opportunities");
 
     return { success: true };
-  } catch (err: any) {
-    if (err.message?.includes("Could not find the table") || err.code === "PGRST205") {
+  } catch (err: unknown) {
+    const errorObj = err as { message?: string; code?: string };
+    if (errorObj.message?.includes("Could not find the table") || errorObj.code === "PGRST205") {
       console.warn("Database not configured. Bypassing database upsert and relying on LocalStorage.");
       return { success: true };
     }
-    return { success: false, error: err.message || "Failed to update tracker column" };
+    return { success: false, error: errorObj.message || "Failed to update tracker column" };
   }
 }
 

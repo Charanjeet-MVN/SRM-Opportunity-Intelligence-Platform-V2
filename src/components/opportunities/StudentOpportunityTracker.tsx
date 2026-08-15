@@ -488,7 +488,7 @@ function KanbanOpportunityCard({
         transition: "transform 0.15s ease-out",
       }}
       draggable
-      onDragStart={(e: any) => onDragStart(e, card.id)}
+      onDragStart={(e: unknown) => onDragStart(e as React.DragEvent, card.id)}
       className="group p-4 rounded-xl bg-zinc-900/60 border border-zinc-800 hover:border-indigo-500/40 transition-colors cursor-grab active:cursor-grabbing shadow-md hover:shadow-lg flex flex-col justify-between gap-3 relative overflow-hidden"
     >
       {/* Top border line glow on hover */}
