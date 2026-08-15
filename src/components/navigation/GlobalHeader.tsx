@@ -21,9 +21,10 @@ import {
   ChevronDown,
   Sparkles,
   BarChart3,
-  Layout,
   Award,
   FileText,
+  Cpu,
+  Layout,
 } from "lucide-react";
 
 interface GlobalHeaderProps {
@@ -93,6 +94,10 @@ export default function GlobalHeader({
                   <NavLink href="/dashboard/student/workspace" active={pathname === "/dashboard/student/workspace"}>
                     <Sparkles className="w-3.5 h-3.5 text-purple-400" />
                     <span>AI Workspace</span>
+                  </NavLink>
+                  <NavLink href="/dashboard/student/agents" active={pathname === "/dashboard/student/agents"}>
+                    <Cpu className="w-3.5 h-3.5 text-purple-400" />
+                    <span>AI Agents</span>
                   </NavLink>
                   <NavLink href="/dashboard/student/saved" active={pathname.includes("/saved")}>
                     <Bookmark className="w-3.5 h-3.5 text-zinc-400" />

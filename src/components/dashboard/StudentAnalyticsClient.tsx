@@ -202,9 +202,9 @@ export default function StudentAnalyticsClient({ profile, analytics }: StudentAn
 
   const [skillsData, setSkillsData] = useState({
     skills: [] as string[],
-    projects: [] as any[],
-    certifications: [] as any[],
-    goals: [] as any[],
+    projects: [] as unknown[],
+    certifications: [] as unknown[],
+    goals: [] as unknown[],
   });
 
   const [activeRole, setActiveRole] = useState<"ai_engineer" | "data_scientist" | "software_engineer" | "full_stack" | "pm" | "cloud">("ai_engineer");
