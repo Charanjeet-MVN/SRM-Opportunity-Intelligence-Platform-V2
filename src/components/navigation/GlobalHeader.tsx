@@ -26,6 +26,7 @@ import {
   Cpu,
   Layout,
   TrendingUp,
+  Layers,
 } from "lucide-react";
 
 interface GlobalHeaderProps {
@@ -111,6 +112,10 @@ export default function GlobalHeader({
                   <NavLink href="/dashboard/student/opportunity-intelligence" active={pathname === "/dashboard/student/opportunity-intelligence"}>
                     <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
                     <span>Opportunity Terminal</span>
+                  </NavLink>
+                  <NavLink href="/dashboard/student/operating-system" active={pathname === "/dashboard/student/operating-system"}>
+                    <Layers className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Student OS</span>
                   </NavLink>
                 </>
               )}
