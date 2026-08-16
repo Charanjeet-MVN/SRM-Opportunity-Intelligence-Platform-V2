@@ -1,11 +1,10 @@
 "use client";
 
 import React, { useRef, useState, useEffect } from "react";
-import { motion } from "framer-motion";
 import { Opportunity, StudentProfile } from "@/types";
 import OpportunityCard from "./OpportunityCard";
 import { calculateOpportunityRelevance } from "@/lib/relevance/scoring";
-import { ChevronLeft, ChevronRight, Sparkles, ArrowRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 interface DiscoveryCarouselRowProps {

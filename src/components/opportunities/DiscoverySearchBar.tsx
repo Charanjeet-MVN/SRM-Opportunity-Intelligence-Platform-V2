@@ -8,9 +8,7 @@ import {
   Clock,
   TrendingUp,
   Sparkles,
-  ArrowRight,
   Zap,
-  Tag,
 } from "lucide-react";
 
 interface DiscoverySearchBarProps {

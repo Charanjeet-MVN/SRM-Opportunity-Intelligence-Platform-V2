@@ -2,7 +2,7 @@
 
 import React from "react";
 import { motion } from "framer-motion";
-import { Search, Sparkles, RefreshCw, Compass, ArrowRight } from "lucide-react";
+import { RefreshCw, Compass, ArrowRight } from "lucide-react";
 
 interface DiscoveryEmptyStateProps {
   searchQuery?: string;
