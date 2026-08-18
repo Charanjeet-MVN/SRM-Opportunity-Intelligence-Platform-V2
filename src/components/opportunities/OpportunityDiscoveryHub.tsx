@@ -11,6 +11,12 @@ import OpportunityCard from "./OpportunityCard";
 import { OpportunityDetailModal } from "./OpportunityDetailModal";
 import { MobileFilterDrawer } from "./MobileFilterDrawer";
 import { calculateOpportunityRelevance } from "@/lib/relevance/scoring";
+
+// Redesigned Event Experience Components
+import FeaturedEventHero from "./events/FeaturedEventHero";
+import EventGalleryShowcase from "./events/EventGalleryShowcase";
+import EventTimelineRadar from "./events/EventTimelineRadar";
+
 import {
   Sparkles,
   Trophy,
@@ -128,6 +134,12 @@ export default function OpportunityDiscoveryHub({
     return counts;
   }, [opportunities]);
 
+  // Curated Featured Opportunities for the Apple/Stripe-Style Hero
+  const featuredOpportunities = useMemo(() => {
+    // Pick top hackathons, popular events or newest flagship listings
+    return opportunities.slice(0, 5);
+  }, [opportunities]);
+
   // Curated Discovery Rows
   const trendingNow = useMemo(() => {
     return [...opportunities]
@@ -135,13 +147,13 @@ export default function OpportunityDiscoveryHub({
       .slice(0, 8);
   }, [opportunities]);
 
-  const endingSoon = useMemo(() => {
+  const upcomingThisWeek = useMemo(() => {
     const now = Date.now();
     return opportunities
       .filter((o) => {
         if (!o.applicationDeadline) return false;
         const diff = new Date(o.applicationDeadline).getTime() - now;
-        return diff > 0 && diff < 5 * 24 * 60 * 60 * 1000;
+        return diff > 0 && diff < 7 * 24 * 60 * 60 * 1000;
       })
       .slice(0, 8);
   }, [opportunities]);
@@ -206,8 +218,17 @@ export default function OpportunityDiscoveryHub({
   }, [isFilteringActive, viewMode]);
 
   return (
-    <div className="space-y-8 font-sans text-zinc-100">
-      {/* ── 1. DISCOVERY HUB COMMAND HEADER ── */}
+    <div className="space-y-12 font-sans text-zinc-100">
+      {/* ── 1. APPLE/STRIPE-STYLE FEATURED EVENT HERO ── */}
+      {featuredOpportunities.length > 0 && !isFilteringActive && (
+        <FeaturedEventHero
+          featuredOpportunities={featuredOpportunities}
+          studentProfile={studentProfile}
+          onSelectDetail={handleSelectDetail}
+        />
+      )}
+
+      {/* ── 2. DISCOVERY HUB COMMAND & SEARCH HEADER ── */}
       <div className="relative overflow-hidden rounded-3xl bg-zinc-950/80 border border-zinc-800/80 p-6 sm:p-8 space-y-6 shadow-2xl backdrop-blur-2xl">
         {/* Top ambient illumination */}
         <div className="absolute -top-24 left-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
@@ -221,9 +242,9 @@ export default function OpportunityDiscoveryHub({
               <span className="text-zinc-600">•</span>
               <span className="text-emerald-400 font-bold">{opportunities.length} Verified Listings</span>
             </div>
-            <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-zinc-100 font-sans">
-              Explore SRM Campus Opportunities
-            </h1>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-100 font-sans">
+              Explore All Campus Events & Sprints
+            </h2>
             <p className="text-xs sm:text-sm text-zinc-400 font-light leading-relaxed">
               Explore national hackathons, research lab grants, technical internships, and verified club recruitments curated for SRM students.
             </p>
@@ -277,10 +298,10 @@ export default function OpportunityDiscoveryHub({
         </div>
       </div>
 
-      {/* ── 2. ADVANCED FILTER BAR (VISIBLE IN GRID VIEW) ── */}
+      {/* ── 3. ADVANCED FILTER BAR (VISIBLE IN GRID VIEW) ── */}
       {viewMode === "grid" && (
         <div className="p-5 rounded-3xl bg-zinc-950/70 border border-zinc-800/80 shadow-xl backdrop-blur-xl space-y-4 font-mono text-xs">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-850 pb-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-zinc-800 pb-3">
             <div className="flex items-center gap-2 text-zinc-300 font-bold">
               <SlidersHorizontal className="w-4 h-4 text-indigo-400" />
               <span className="uppercase tracking-wider text-[11px]">Exploration Controls</span>
@@ -368,12 +389,22 @@ export default function OpportunityDiscoveryHub({
         </div>
       )}
 
-      {/* ── 3. MAIN CONTENT: CURATED DISCOVERY ROWS vs FILTERED GRID ── */}
+      {/* ── 4. EXPERIENTIAL TRACKS GALLERY ── */}
+      {!isFilteringActive && viewMode === "discovery" && (
+        <EventGalleryShowcase
+          onSelectCategory={(cat) => {
+            setSelectedType(cat as OpportunityType);
+            setViewMode("grid");
+          }}
+        />
+      )}
+
+      {/* ── 5. MAIN CONTENT: CURATED DISCOVERY ROWS vs FILTERED GRID ── */}
       {viewMode === "discovery" && !isFilteringActive ? (
         <div className="space-y-10">
           {/* Row 1: Trending Now on Campus */}
           <DiscoveryCarouselRow
-            title="Trending Now on Campus"
+            title="Trending Events on Campus"
             subtitle="Most active registrations across SRM student organizations this week"
             icon={Flame}
             badge="Hot"
@@ -385,26 +416,26 @@ export default function OpportunityDiscoveryHub({
             viewAllLink="/opportunities?sortBy=popular"
           />
 
-          {/* Row 2: Closing Soon (Urgent 72h) */}
-          {endingSoon.length > 0 && (
+          {/* Row 2: Upcoming This Week */}
+          {upcomingThisWeek.length > 0 && (
             <DiscoveryCarouselRow
-              title="Ending Soon — Last Call"
-              subtitle="Deadlines closing within the next few days. Secure your registration early."
+              title="Upcoming This Week — Immediate Registration"
+              subtitle="Events and deadlines closing within the next 7 days."
               icon={Clock}
-              badge="Urgent"
+              badge="This Week"
               badgeColor="bg-amber-500/15 text-amber-300 border-amber-500/30"
               accentColor="#f59e0b"
-              opportunities={endingSoon}
+              opportunities={upcomingThisWeek}
               studentProfile={studentProfile}
               onSelectDetail={handleSelectDetail}
               viewAllLink="/opportunities?sortBy=closing_soon"
             />
           )}
 
-          {/* Row 3: National Hackathons & Build Challenges */}
+          {/* Row 3: National Hackathons & Code Sprints */}
           {hackathons.length > 0 && (
             <DiscoveryCarouselRow
-              title="National Hackathons & Build Challenges"
+              title="National Hackathons & Code Sprints"
               subtitle="Team-based software & hardware build challenges with prize pools & recruitment"
               icon={Trophy}
               badge="Buildathons"
@@ -417,55 +448,23 @@ export default function OpportunityDiscoveryHub({
             />
           )}
 
-          {/* Row 4: Technical Internships & Placement Drives */}
-          {internships.length > 0 && (
+          {/* Row 4: Hands-On Workshops & Bootcamps */}
+          {workshops.length > 0 && (
             <DiscoveryCarouselRow
-              title="Technical Internships & Placement Drives"
-              subtitle="Direct summer internships and campus hiring drives from verified partner companies"
-              icon={Briefcase}
-              badge="Career Track"
-              badgeColor="bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
-              accentColor="#10b981"
-              opportunities={internships}
+              title="Hands-on Workshops & Tech Bootcamps"
+              subtitle="Intensive masterclasses with verified campus technical clubs"
+              icon={Rocket}
+              badge="Workshops"
+              badgeColor="bg-sky-500/15 text-sky-300 border-sky-500/30"
+              accentColor="#38bdf8"
+              opportunities={workshops}
               studentProfile={studentProfile}
               onSelectDetail={handleSelectDetail}
-              viewAllLink="/opportunities?type=internship"
+              viewAllLink="/opportunities?type=workshop"
             />
           )}
 
-          {/* Row 5: Funded Research Fellowships & Lab Grants */}
-          {researchOpps.length > 0 && (
-            <DiscoveryCarouselRow
-              title="Research Fellowships & Lab Grants"
-              subtitle="Faculty-led peer-review research programs and campus laboratory grants"
-              icon={FlaskConical}
-              badge="Academic Lab"
-              badgeColor="bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
-              accentColor="#6366f1"
-              opportunities={researchOpps}
-              studentProfile={studentProfile}
-              onSelectDetail={handleSelectDetail}
-              viewAllLink="/opportunities?type=research"
-            />
-          )}
-
-          {/* Row 6: Scholarships & Financial Funding */}
-          {scholarships.length > 0 && (
-            <DiscoveryCarouselRow
-              title="Scholarships & Financial Fellowships"
-              subtitle="Merit endowments, tuition fee waivers, and conference travel grants"
-              icon={Award}
-              badge="Grants"
-              badgeColor="bg-amber-500/15 text-amber-300 border-amber-500/30"
-              accentColor="#f59e0b"
-              opportunities={scholarships}
-              studentProfile={studentProfile}
-              onSelectDetail={handleSelectDetail}
-              viewAllLink="/opportunities?type=scholarship"
-            />
-          )}
-
-          {/* Row 7: Skill Competitions */}
+          {/* Row 5: Skill Competitions */}
           {competitions.length > 0 && (
             <DiscoveryCarouselRow
               title="Skill Competitions & Coding Contests"
@@ -481,21 +480,56 @@ export default function OpportunityDiscoveryHub({
             />
           )}
 
-          {/* Row 8: Hands-On Workshops & Bootcamps */}
-          {workshops.length > 0 && (
+          {/* Row 6: Technical Internships & Placement Drives */}
+          {internships.length > 0 && (
             <DiscoveryCarouselRow
-              title="Hands-on Workshops & Tech Bootcamps"
-              subtitle="Intensive masterclasses with verified campus technical clubs"
-              icon={Rocket}
-              badge="Workshops"
-              badgeColor="bg-sky-500/15 text-sky-300 border-sky-500/30"
-              accentColor="#38bdf8"
-              opportunities={workshops}
+              title="Technical Internships & Placement Drives"
+              subtitle="Direct summer internships and campus hiring drives from verified partner companies"
+              icon={Briefcase}
+              badge="Career Track"
+              badgeColor="bg-emerald-500/15 text-emerald-300 border-emerald-500/30"
+              accentColor="#10b981"
+              opportunities={internships}
               studentProfile={studentProfile}
               onSelectDetail={handleSelectDetail}
-              viewAllLink="/opportunities?type=workshop"
+              viewAllLink="/opportunities?type=internship"
             />
           )}
+
+          {/* Row 7: Funded Research Fellowships & Lab Grants */}
+          {researchOpps.length > 0 && (
+            <DiscoveryCarouselRow
+              title="Research Fellowships & Lab Grants"
+              subtitle="Faculty-led peer-review research programs and campus laboratory grants"
+              icon={FlaskConical}
+              badge="Academic Lab"
+              badgeColor="bg-indigo-500/15 text-indigo-300 border-indigo-500/30"
+              accentColor="#6366f1"
+              opportunities={researchOpps}
+              studentProfile={studentProfile}
+              onSelectDetail={handleSelectDetail}
+              viewAllLink="/opportunities?type=research"
+            />
+          )}
+
+          {/* Row 8: Scholarships & Financial Funding */}
+          {scholarships.length > 0 && (
+            <DiscoveryCarouselRow
+              title="Scholarships & Financial Fellowships"
+              subtitle="Merit endowments, tuition fee waivers, and conference travel grants"
+              icon={Award}
+              badge="Grants"
+              badgeColor="bg-amber-500/15 text-amber-300 border-amber-500/30"
+              accentColor="#f59e0b"
+              opportunities={scholarships}
+              studentProfile={studentProfile}
+              onSelectDetail={handleSelectDetail}
+              viewAllLink="/opportunities?type=scholarship"
+            />
+          )}
+
+          {/* ── 6. EVENT TIMELINE & ROADMAP ── */}
+          <EventTimelineRadar />
         </div>
       ) : (
         /* ── FILTERED 3D GRID VIEW ── */
