@@ -25,7 +25,6 @@ import {
   ChevronDown,
   ChevronUp,
   MapPin,
-  Layers,
 } from "lucide-react";
 
 interface CommandCenterClientProps {
