@@ -5,27 +5,28 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Opportunity, StudentProfile } from "@/types";
 import { TrackerOpportunity } from "@/components/opportunities/StudentOpportunityTracker";
-import OpportunityCard from "@/components/opportunities/OpportunityCard";
 import StudentOpportunityTracker from "@/components/opportunities/StudentOpportunityTracker";
+import OpportunityCard from "@/components/opportunities/OpportunityCard";
+
+// Redesigned Command Center Components
+import StudentWelcomeHero from "./student/StudentWelcomeHero";
+import OpportunitySnapshotGrid from "./student/OpportunitySnapshotGrid";
+import UpcomingDeadlinesTimeline from "./student/UpcomingDeadlinesTimeline";
+import RecommendedOpportunitiesDeck from "./student/RecommendedOpportunitiesDeck";
+import CommandCenterFeed from "./student/CommandCenterFeed";
+import CommandQuickActions from "./student/CommandQuickActions";
+
 import {
   Compass,
   User,
   Bookmark,
-  UserCheck,
-  Clock,
-  ArrowRight,
   Sparkles,
-  Shield,
-  BarChart3,
-  Calendar,
-  MapPin,
+  ArrowRight,
   ChevronDown,
   ChevronUp,
-  AlertTriangle,
-  CheckCircle2,
+  MapPin,
+  Layers,
 } from "lucide-react";
-
-import { getDeadlineUrgency } from "@/lib/notifications/urgency";
 
 interface CommandCenterClientProps {
   studentProfile: StudentProfile | null;
@@ -49,13 +50,14 @@ const fadeUp = {
   show: { opacity: 1, y: 0, transition: { duration: 0.4, ease: [0.22, 1, 0.36, 1] as const } },
 };
 
-function getUpcomingDeadlineInfo(savedOpps: TrackerOpportunity[]): {
+function getUpcomingDeadlineCount(savedOpps: TrackerOpportunity[]): {
   critical: number;
-  upcoming: number;
+  thisWeek: number;
 } {
   const now = new Date();
   let critical = 0;
-  let upcoming = 0;
+  let thisWeek = 0;
+
   savedOpps.forEach((opp) => {
     if (!opp.applicationDeadline) return;
     const deadline = new Date(opp.applicationDeadline);
@@ -63,10 +65,11 @@ function getUpcomingDeadlineInfo(savedOpps: TrackerOpportunity[]): {
     const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
     if (diffMs > 0) {
       if (diffDays <= 3) critical++;
-      else upcoming++;
+      if (diffDays <= 7) thisWeek++;
     }
   });
-  return { critical, upcoming };
+
+  return { critical, thisWeek };
 }
 
 export default function CommandCenterClient({
@@ -78,354 +81,81 @@ export default function CommandCenterClient({
   aiRecommendations = [],
 }: CommandCenterClientProps) {
   const [feedExpanded, setFeedExpanded] = useState(false);
+
+  const { critical: criticalDeadlines, thisWeek: deadlinesThisWeek } =
+    getUpcomingDeadlineCount(savedOpportunities);
+
   const displayedOpportunities = feedExpanded ? opportunities : opportunities.slice(0, 3);
-
   const firstName = studentProfile?.fullName?.split(" ")[0] || "Student";
-  const { critical: criticalDeadlines, upcoming: upcomingDeadlines } =
-    getUpcomingDeadlineInfo(savedOpportunities);
 
+  // Combine tracked items for the deadline radar
   const allTracked = [...savedOpportunities, ...registeredOpportunities];
-  const uniqueMap = new Map<string, TrackerOpportunity>();
-  allTracked.forEach((o) => uniqueMap.set(o.id, o));
-  const uniqueItems = Array.from(uniqueMap.values());
-
-  const upcomingCount = uniqueItems.filter(
-    (o) => o.applicationDeadline && new Date(o.applicationDeadline) > new Date()
-  ).length;
-
-  // Deterministic Attention Items: Tracked items with deadlines within 7 days
-  const attentionItems = uniqueItems
-    .map((o) => ({ ...o, urgency: getDeadlineUrgency(o.applicationDeadline) }))
-    .filter((o) => o.urgency.status !== "expired" && o.urgency.status !== "no_deadline" && (o.urgency.daysLeft !== null && o.urgency.daysLeft <= 7))
-    .sort((a, b) => (a.urgency.daysLeft ?? 99) - (b.urgency.daysLeft ?? 99));
-
-  const STAT_CARDS = [
-    {
-      label: "Saved",
-      value: savedOpportunities.length,
-      icon: Bookmark,
-      accent: "text-indigo-400",
-      border: "border-indigo-500/20 hover:border-indigo-500/50",
-      bg: "bg-indigo-500/8",
-      href: "/dashboard/student/saved",
-    },
-    {
-      label: "Registered",
-      value: registeredOpportunities.length,
-      icon: UserCheck,
-      accent: "text-emerald-400",
-      border: "border-emerald-500/20 hover:border-emerald-500/50",
-      bg: "bg-emerald-500/8",
-      href: "/dashboard/student/registrations",
-    },
-    {
-      label: "Upcoming Deadlines",
-      value: upcomingCount,
-      icon: Clock,
-      accent: criticalDeadlines > 0 ? "text-amber-400" : "text-sky-400",
-      border:
-        criticalDeadlines > 0
-          ? "border-amber-500/30 hover:border-amber-500/60"
-          : "border-sky-500/20 hover:border-sky-500/50",
-      bg: criticalDeadlines > 0 ? "bg-amber-500/8" : "bg-sky-500/8",
-      href: "/dashboard/student/calendar",
-    },
-    {
-      label: "Profile",
-      value: `${profileCompleteness}%`,
-      icon: BarChart3,
-      accent: "text-purple-400",
-      border: "border-purple-500/20 hover:border-purple-500/50",
-      bg: "bg-purple-500/8",
-      href: "/dashboard/student/profile",
-    },
-  ];
+  const uniqueTrackedMap = new Map<string, TrackerOpportunity>();
+  allTracked.forEach((o) => uniqueTrackedMap.set(o.id, o));
+  const trackedItems = Array.from(uniqueTrackedMap.values());
 
   return (
     <motion.div
       variants={staggerContainer}
       initial="hidden"
       animate="show"
-      className="space-y-8"
+      className="space-y-10"
     >
-      {/* ── COMMAND CENTER HEADER ── */}
-      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl border border-zinc-800/80 bg-zinc-950/60 p-6 sm:p-8 space-y-4">
-        {/* Subtle ambient glow */}
-        <div className="absolute -top-24 -left-24 w-72 h-72 bg-indigo-600/5 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-16 -right-16 w-56 h-56 bg-purple-600/5 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="space-y-2">
-            {/* Status badge */}
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-300">
-              <span className="relative flex h-1.5 w-1.5">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-                <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
-              </span>
-              <span className="text-emerald-400 font-semibold uppercase tracking-widest text-[9px]">
-                Workspace Active
-              </span>
-              <span className="text-zinc-600">•</span>
-              <Shield className="w-3 h-3 text-indigo-400" />
-              <span className="text-zinc-400 text-[10px]">Supabase Verified</span>
-            </div>
-
-            <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-zinc-100">
-              Welcome back, {firstName}.
-            </h1>
-            <p className="text-xs sm:text-sm text-zinc-400 font-light leading-relaxed max-w-lg">
-              Your private opportunity intelligence cockpit.
-              {savedOpportunities.length > 0
-                ? ` You have ${savedOpportunities.length} saved ${savedOpportunities.length === 1 ? "opportunity" : "opportunities"} and ${upcomingCount} active deadline${upcomingCount !== 1 ? "s" : ""} to track.`
-                : " Start exploring verified SRM opportunities to build your personalized tracking radar."}
-            </p>
-          </div>
-
-          {/* CTA Group */}
-          <div className="flex items-center gap-2 shrink-0 flex-wrap">
-            {criticalDeadlines > 0 && (
-              <Link
-                href="/dashboard/student/calendar"
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-amber-500/15 border border-amber-500/30 text-amber-400 font-semibold text-xs transition-all hover:bg-amber-500/25"
-              >
-                <AlertTriangle className="w-3.5 h-3.5" />
-                <span>{criticalDeadlines} Closing Soon</span>
-              </Link>
-            )}
-            <Link
-              href="/opportunities"
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/20 transition-all active:scale-95"
-            >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Explore Opportunities</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Student profile meta chips */}
-        {studentProfile && (
-          <div className="relative z-10 flex flex-wrap gap-2 pt-2 border-t border-zinc-800/60">
-            {studentProfile.department && (
-              <span className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400">
-                {studentProfile.department}
-              </span>
-            )}
-            {studentProfile.yearOfStudy && (
-              <span className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400">
-                Year {studentProfile.yearOfStudy}
-              </span>
-            )}
-            {(studentProfile.skills || []).slice(0, 5).map((skill) => (
-              <span
-                key={skill}
-                className="px-2.5 py-1 rounded-lg text-[11px] font-mono bg-indigo-500/10 border border-indigo-500/20 text-indigo-300"
-              >
-                {skill}
-              </span>
-            ))}
-            {(studentProfile.skills || []).length > 5 && (
-              <span className="px-2 py-1 rounded-lg text-[11px] font-mono text-zinc-500">
-                +{studentProfile.skills!.length - 5} more
-              </span>
-            )}
-          </div>
-        )}
-      </motion.div>
-
-      {/* ── STUDENT ATTENTION CENTER ── */}
+      {/* 1. Personalized Welcome Experience */}
       <motion.div variants={fadeUp}>
-        {attentionItems.length > 0 ? (
-          <div className="rounded-3xl border border-amber-500/25 bg-gradient-to-r from-amber-950/20 via-zinc-950 to-zinc-950 p-6 space-y-4 shadow-xl">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400 animate-pulse shrink-0" />
-                <h2 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
-                  {attentionItems.length} {attentionItems.length === 1 ? "opportunity needs" : "opportunities need"} your attention
-                </h2>
-              </div>
-              <Link
-                href="/dashboard/student/calendar"
-                className="text-xs text-amber-400 hover:text-amber-300 font-mono font-medium flex items-center gap-1"
-              >
-                <span>Timeline View</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {attentionItems.map((opp) => (
-                <div
-                  key={opp.id}
-                  className="p-4 rounded-2xl bg-zinc-900/80 border border-amber-500/20 hover:border-amber-500/40 transition-all flex flex-col justify-between space-y-3"
-                >
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className={`text-[10px] font-mono px-2 py-0.5 rounded border ${
-                        opp.urgency.status === "due_today"
-                          ? "bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse font-bold"
-                          : opp.urgency.status === "due_tomorrow"
-                          ? "bg-amber-500/10 text-amber-400 border-amber-500/30 font-semibold"
-                          : "bg-purple-500/10 text-purple-300 border-purple-500/20"
-                      }`}>
-                        {opp.urgency.label}
-                      </span>
-                      <span className="text-[10px] font-mono text-zinc-500 capitalize">{opp.type.replace("_", " ")}</span>
-                    </div>
-
-                    <Link href={`/opportunities/${opp.slug}`}>
-                      <h3 className="text-xs font-bold text-zinc-100 hover:text-amber-300 transition-colors line-clamp-2 leading-snug">
-                        {opp.title}
-                      </h3>
-                    </Link>
-                  </div>
-
-                  <div className="flex items-center justify-between text-[11px] font-mono text-zinc-400 pt-2 border-t border-zinc-800/60">
-                    <span className="truncate">{opp.club?.name || "SRM Org"}</span>
-                    <Link
-                      href={`/opportunities/${opp.slug}`}
-                      className="text-amber-400 hover:text-amber-300 font-semibold inline-flex items-center gap-1 shrink-0"
-                    >
-                      <span>Apply</span>
-                      <ArrowRight className="w-3 h-3" />
-                    </Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        ) : (
-          <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-emerald-500/10 border border-emerald-500/25 flex items-center justify-center text-emerald-400 shrink-0">
-                <CheckCircle2 className="w-5 h-5" />
-              </div>
-              <div>
-                <h3 className="text-xs font-bold text-zinc-200">You&apos;re all caught up.</h3>
-                <p className="text-[11px] text-zinc-400 font-mono">No urgent deadlines requiring immediate action right now.</p>
-              </div>
-            </div>
-            <Link
-              href="/opportunities"
-              className="text-xs text-emerald-400 hover:text-emerald-300 font-mono font-medium inline-flex items-center gap-1 shrink-0"
-            >
-              <span>Explore Opportunities Feed</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
-        )}
+        <StudentWelcomeHero
+          studentProfile={studentProfile}
+          profileCompleteness={profileCompleteness}
+          criticalDeadlines={criticalDeadlines}
+          totalSaved={savedOpportunities.length}
+        />
       </motion.div>
 
-      {/* ── LIVE OVERVIEW METRIC CARDS ── */}
+      {/* 2. Opportunity Snapshot Metric Cards */}
       <motion.div variants={fadeUp}>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {STAT_CARDS.map((card) => {
-            const Icon = card.icon;
-            return (
-              <Link key={card.label} href={card.href}>
-                <motion.div
-                  whileHover={{ y: -3, scale: 1.01 }}
-                  whileTap={{ scale: 0.97 }}
-                  className={`group p-5 rounded-2xl ${card.bg} border ${card.border} bg-zinc-900/60 transition-all duration-300 cursor-pointer relative overflow-hidden`}
-                >
-                  <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/50 transition-all duration-500" />
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-8 h-8 rounded-xl ${card.bg} border border-zinc-800/80 flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                      <Icon className={`w-4 h-4 ${card.accent}`} />
-                    </div>
-                    <ArrowRight className="w-3.5 h-3.5 text-zinc-600 group-hover:text-zinc-400 group-hover:translate-x-0.5 transition-all" />
-                  </div>
-                  <motion.div
-                    key={String(card.value)}
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3 }}
-                    className={`text-2xl font-black ${card.accent} font-mono mb-0.5`}
-                  >
-                    {card.value}
-                  </motion.div>
-                  <div className="text-[11px] font-medium text-zinc-400">{card.label}</div>
-                </motion.div>
-              </Link>
-            );
-          })}
-        </div>
+        <OpportunitySnapshotGrid
+          totalAvailable={opportunities.length}
+          totalSaved={savedOpportunities.length}
+          totalRegistered={registeredOpportunities.length}
+          deadlinesThisWeek={deadlinesThisWeek}
+        />
       </motion.div>
 
-      {/* ── OPPORTUNITY RADAR / SKILL ECOSYSTEM SECTION ── */}
-      {studentProfile && (studentProfile.skills || []).length > 0 && (
-        <motion.div variants={fadeUp} className="rounded-3xl border border-zinc-800/80 bg-zinc-950/60 p-6 sm:p-7 overflow-hidden relative">
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(99,102,241,0.05),transparent_60%)] pointer-events-none" />
+      {/* 3. Upcoming Deadlines & Attention Radar */}
+      <motion.div variants={fadeUp}>
+        <UpcomingDeadlinesTimeline trackedOpportunities={trackedItems} />
+      </motion.div>
 
-          <div className="flex items-center gap-2 mb-5 relative z-10">
-            <Sparkles className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
-              Skill Radar
-            </h2>
-            <span className="text-[10px] font-mono text-zinc-500 px-2 py-0.5 rounded bg-zinc-900 border border-zinc-800">
-              {(studentProfile.skills || []).length} active skills
-            </span>
-          </div>
-
-          {/* Lightweight skill web visualization */}
-          <div className="relative z-10 flex flex-col items-center py-4">
-            {/* Center node */}
-            <div className="relative flex items-center justify-center">
-              <div className="w-16 h-16 rounded-full bg-indigo-600/15 border-2 border-indigo-500/40 flex flex-col items-center justify-center shadow-lg shadow-indigo-900/30 z-10">
-                <User className="w-5 h-5 text-indigo-400 mb-0.5" />
-                <span className="text-[9px] font-mono text-indigo-300 font-bold uppercase tracking-wider">
-                  {firstName}
-                </span>
-              </div>
-              {/* Orbit ring */}
-              <div className="absolute w-32 h-32 rounded-full border border-indigo-500/10 animate-spin" style={{ animationDuration: "18s" }} />
-              <div className="absolute w-52 h-52 rounded-full border border-indigo-500/5" />
-            </div>
-
-            {/* Skill chips radiating outward */}
-            <div className="mt-5 flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
-              {(studentProfile.skills || []).map((skill, idx) => (
-                <motion.span
-                  key={skill}
-                  initial={{ opacity: 0, scale: 0.8 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.05 * idx, duration: 0.3 }}
-                  className="px-3 py-1.5 rounded-xl text-xs font-mono bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 hover:bg-indigo-500/20 hover:border-indigo-500/50 transition-colors cursor-default"
-                >
-                  {skill}
-                </motion.span>
-              ))}
-            </div>
-
-            {(studentProfile.interests || []).length > 0 && (
-              <div className="mt-3 flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
-                {(studentProfile.interests || []).slice(0, 5).map((interest) => (
-                  <span
-                    key={interest}
-                    className="px-2.5 py-1 rounded-xl text-[11px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400 hover:border-zinc-700 transition-colors cursor-default"
-                  >
-                    {interest}
-                  </span>
-                ))}
-              </div>
-            )}
-          </div>
+      {/* 4. AI-Recommended Opportunities Deck */}
+      {aiRecommendations.length > 0 && (
+        <motion.div variants={fadeUp}>
+          <RecommendedOpportunitiesDeck recommendations={aiRecommendations} />
         </motion.div>
       )}
 
-      {/* ── TRACKER SECTION: SAVED + REGISTERED + UPCOMING ── */}
+      {/* 5. Linear / Notion Inspired Activity Feed */}
+      <motion.div variants={fadeUp}>
+        <CommandCenterFeed
+          opportunities={opportunities}
+          savedOpportunities={savedOpportunities}
+          registeredOpportunities={registeredOpportunities}
+        />
+      </motion.div>
+
+      {/* 6. My Opportunity Tracker (Saved + Registered tabs) */}
       <motion.div variants={fadeUp} className="space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Bookmark className="w-4 h-4 text-indigo-400" />
             <h2 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
-              My Opportunity Tracker
+              Opportunity Tracker & Workspace
             </h2>
           </div>
           <Link
             href="/dashboard/student/saved"
             className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-mono transition-colors"
           >
-            <span>Full View</span>
+            <span>Full Workspace</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </Link>
         </div>
@@ -436,87 +166,94 @@ export default function CommandCenterClient({
           initialTab="saved"
         />
       </motion.div>
-      {/* ── RECOMMENDED FOR YOU (AI INTELLIGENCE LAYER) ── */}
-      {aiRecommendations.length > 0 && (
-        <motion.div variants={fadeUp} className="space-y-4">
-          <div className="flex items-center justify-between">
+
+      {/* 7. Skill Radar & Vector Ecosystem */}
+      {studentProfile && (studentProfile.skills || []).length > 0 && (
+        <motion.div
+          variants={fadeUp}
+          className="rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-6 sm:p-8 backdrop-blur-2xl shadow-2xl overflow-hidden relative"
+        >
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(99,102,241,0.06),transparent_60%)] pointer-events-none" />
+
+          <div className="flex items-center justify-between gap-2 mb-6 relative z-10 border-b border-zinc-800/70 pb-3">
             <div className="flex items-center gap-2">
-              <Sparkles className="w-4 h-4 text-purple-400 animate-pulse" />
+              <Sparkles className="w-4 h-4 text-indigo-400" />
               <h2 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
-                Recommended for You
+                Student Skill Vectors & Compatibility Matrix
               </h2>
             </div>
-            <span className="text-[11px] font-mono text-purple-400 bg-purple-500/10 px-2.5 py-0.5 rounded-full border border-purple-500/20">
-              Personalized Vector Match
+            <span className="text-[10px] font-mono text-indigo-300 px-2.5 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+              {(studentProfile.skills || []).length} Active Skill Vectors
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {aiRecommendations.map((rec) => (
-              <div
-                key={rec.id}
-                className="p-5 rounded-3xl bg-zinc-900/70 border border-purple-500/20 hover:border-purple-500/40 transition-all flex flex-col justify-between space-y-4 relative overflow-hidden group shadow-xl"
-              >
-                <div className="space-y-2">
-                  {/* AI Explanation Chip */}
-                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-purple-500/15 border border-purple-500/30 text-purple-300">
-                    <Sparkles className="w-3 h-3 text-purple-400 shrink-0" />
-                    <span className="truncate">{rec.aiExplanation}</span>
-                  </div>
-
-                  <Link href={`/opportunities/${rec.slug}`}>
-                    <h3 className="text-sm font-bold text-zinc-100 group-hover:text-purple-300 transition-colors line-clamp-2 leading-snug">
-                      {rec.title}
-                    </h3>
-                  </Link>
-
-                  {rec.summary && (
-                    <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed font-light">
-                      {rec.summary}
-                    </p>
-                  )}
-                </div>
-
-                <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-[11px] font-mono text-zinc-500">
-                  <span>{rec.club?.name || "SRM Org"}</span>
-                  <Link
-                    href={`/opportunities/${rec.slug}`}
-                    className="text-purple-400 group-hover:text-purple-300 font-semibold inline-flex items-center gap-1 shrink-0"
-                  >
-                    <span>View Match</span>
-                    <ArrowRight className="w-3 h-3" />
-                  </Link>
-                </div>
+          <div className="relative z-10 flex flex-col items-center py-4">
+            {/* Center Node */}
+            <div className="relative flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-indigo-600/20 border-2 border-indigo-500/40 flex flex-col items-center justify-center shadow-lg shadow-indigo-900/30 z-10">
+                <User className="w-5 h-5 text-indigo-400 mb-0.5" />
+                <span className="text-[9px] font-mono text-indigo-300 font-bold uppercase tracking-wider">
+                  {firstName}
+                </span>
               </div>
-            ))}
+              {/* Animated Orbit Rings */}
+              <div
+                className="absolute w-32 h-32 rounded-full border border-indigo-500/15 animate-spin"
+                style={{ animationDuration: "20s" }}
+              />
+              <div className="absolute w-52 h-52 rounded-full border border-indigo-500/10" />
+            </div>
+
+            {/* Skill Tags */}
+            <div className="mt-6 flex flex-wrap gap-2 justify-center max-w-xl mx-auto">
+              {(studentProfile.skills || []).map((skill) => (
+                <span
+                  key={skill}
+                  className="px-3 py-1.5 rounded-xl text-xs font-mono bg-indigo-500/10 border border-indigo-500/25 text-indigo-300 shadow-sm"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+
+            {(studentProfile.interests || []).length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-2 justify-center max-w-lg mx-auto">
+                {(studentProfile.interests || []).map((interest) => (
+                  <span
+                    key={interest}
+                    className="px-2.5 py-1 rounded-xl text-[11px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-400"
+                  >
+                    {interest}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         </motion.div>
       )}
 
-      {/* ── PERSONALIZED DISCOVERY FEED ── */}
+      {/* 8. Prioritized Discovery Feed */}
       <motion.div variants={fadeUp} className="space-y-4">
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-purple-400" />
+            <Compass className="w-4 h-4 text-indigo-400" />
             <h2 className="text-sm font-bold text-zinc-200 uppercase tracking-wider">
-              Prioritized Discovery Feed
+              Prioritized Opportunity Feed
             </h2>
           </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/opportunities"
-              className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1 font-mono transition-colors"
-            >
-              <span>Explore All</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+          <Link
+            href="/opportunities"
+            className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 font-mono transition-colors"
+          >
+            <span>Explore Full Catalog</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
         {opportunities.length === 0 ? (
-          <div className="py-14 px-6 rounded-2xl bg-zinc-900/40 border border-zinc-800 text-center space-y-4">
+          <div className="py-14 px-6 rounded-3xl bg-zinc-900/40 border border-zinc-800 text-center space-y-4">
             <div className="w-12 h-12 rounded-2xl bg-zinc-950 border border-zinc-800 text-zinc-500 flex items-center justify-center mx-auto">
-              <Shield className="w-6 h-6 text-purple-400" />
+              <Compass className="w-6 h-6 text-indigo-400" />
             </div>
             <div className="space-y-1 max-w-sm mx-auto">
               <h3 className="text-sm font-semibold text-zinc-200">No verified opportunities available yet.</h3>
@@ -543,17 +280,17 @@ export default function CommandCenterClient({
               <div className="flex justify-center pt-2">
                 <button
                   onClick={() => setFeedExpanded((v) => !v)}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-300 font-medium text-xs transition-all cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-medium text-xs transition-all cursor-pointer shadow-lg"
                 >
                   {feedExpanded ? (
                     <>
                       <ChevronUp className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>Show Less</span>
+                      <span>Collapse Feed</span>
                     </>
                   ) : (
                     <>
                       <ChevronDown className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>Show {opportunities.length - 3} More</span>
+                      <span>View {opportunities.length - 3} More Opportunities</span>
                     </>
                   )}
                 </button>
@@ -563,106 +300,52 @@ export default function CommandCenterClient({
         )}
       </motion.div>
 
-      {/* ── QUICK NAVIGATION SECTION ── */}
+      {/* 9. Large Quick Action Shortcuts */}
       <motion.div variants={fadeUp}>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {[
-            {
-              href: "/dashboard/student/profile",
-              icon: User,
-              label: "Profile & Skills",
-              description: `${profileCompleteness}% complete — ${(studentProfile?.skills || []).length} active skills`,
-              accent: "group-hover:border-purple-500/50 group-hover:bg-purple-500/5",
-              iconBg: "bg-purple-500/10 text-purple-400 border-purple-500/20",
-              badge: profileCompleteness < 100 ? `${100 - profileCompleteness}% to complete` : undefined,
-              badgeColor: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-            },
-            {
-              href: "/dashboard/student/calendar",
-              icon: Calendar,
-              label: "Deadline Calendar",
-              description: `${upcomingDeadlines} active deadlines${criticalDeadlines > 0 ? ` — ${criticalDeadlines} critical` : ""}`,
-              accent: "group-hover:border-sky-500/50 group-hover:bg-sky-500/5",
-              iconBg: "bg-sky-500/10 text-sky-400 border-sky-500/20",
-              badge: criticalDeadlines > 0 ? `${criticalDeadlines} Urgent` : undefined,
-              badgeColor: "text-amber-400 bg-amber-500/10 border-amber-500/20",
-            },
-            {
-              href: "/dashboard/student/registrations",
-              icon: CheckCircle2,
-              label: "Registrations",
-              description: `${registeredOpportunities.length} registered opportunity${registeredOpportunities.length !== 1 ? "ies" : "y"}`,
-              accent: "group-hover:border-emerald-500/50 group-hover:bg-emerald-500/5",
-              iconBg: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
-              badge: undefined,
-              badgeColor: "",
-            },
-          ].map((item) => {
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={`group p-5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 ${item.accent} transition-all duration-200 space-y-3 relative overflow-hidden`}
-              >
-                <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/40 transition-all duration-500" />
-                <div className="flex items-center justify-between">
-                  <div className={`w-8 h-8 rounded-xl ${item.iconBg} border flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                    <Icon className="w-4 h-4" />
-                  </div>
-                  {item.badge && (
-                    <span className={`text-[10px] font-mono px-2 py-0.5 rounded-md border ${item.badgeColor}`}>
-                      {item.badge}
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-0.5">
-                  <h3 className="text-xs font-bold text-zinc-200 group-hover:text-white transition-colors">
-                    {item.label}
-                  </h3>
-                  <p className="text-[11px] text-zinc-500 font-mono leading-snug">{item.description}</p>
-                </div>
-                <div className="flex items-center gap-1 text-zinc-500 group-hover:text-indigo-400 transition-colors text-[11px] font-mono">
-                  <span>Open</span>
-                  <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
-                </div>
-              </Link>
-            );
-          })}
-        </div>
+        <CommandQuickActions
+          totalSaved={savedOpportunities.length}
+          totalRegistered={registeredOpportunities.length}
+          criticalDeadlines={criticalDeadlines}
+          profileCompleteness={profileCompleteness}
+        />
       </motion.div>
 
-      {/* ── SMART DISCOVERY CTA ── */}
-      <motion.div variants={fadeUp} className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/40 via-zinc-950 to-zinc-950 p-6 sm:p-8 space-y-4">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(99,102,241,0.08),transparent_60%)] pointer-events-none" />
-        <div className="relative z-10 space-y-2">
+      {/* 10. Smart Discovery Engine Banner */}
+      <motion.div
+        variants={fadeUp}
+        className="relative overflow-hidden rounded-3xl border border-indigo-500/20 bg-gradient-to-br from-indigo-950/40 via-zinc-950 to-zinc-950 p-6 sm:p-9 space-y-5 shadow-2xl backdrop-blur-xl"
+      >
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom_right,rgba(99,102,241,0.1),transparent_60%)] pointer-events-none" />
+
+        <div className="relative z-10 space-y-2 max-w-2xl">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-mono bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
             <MapPin className="w-3 h-3" />
-            <span>SRM Discovery Engine</span>
+            <span>SRM Opportunity Intelligence Network</span>
           </div>
-          <h3 className="text-xl sm:text-2xl font-bold text-zinc-100">
-            Find your next opportunity.
+          <h3 className="text-xl sm:text-3xl font-bold text-white tracking-tight">
+            Find your next campus breakthrough.
           </h3>
-          <p className="text-sm text-zinc-400 leading-relaxed max-w-xl font-light">
+          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed font-light">
             {(studentProfile?.skills || []).length > 0
-              ? `Browse verified SRM listings that match your skills in ${(studentProfile!.skills!).slice(0, 3).join(", ")}${(studentProfile!.skills!).length > 3 ? " and more" : ""}.`
-              : "Explore verified hackathons, internships, research programs, and campus events published by official SRM organizations."}
+              ? `Discover verified hackathons, research labs, internships, and workshops tailored to your skills in ${(studentProfile!.skills!).slice(0, 3).join(", ")}${(studentProfile!.skills!).length > 3 ? " and more" : ""}.`
+              : "Discover verified hackathons, internships, research grants, and club events across all SRM departments."}
           </p>
         </div>
+
         <div className="relative z-10 flex flex-wrap gap-3">
           <Link
             href="/opportunities"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-sm shadow-lg shadow-indigo-600/25 transition-all active:scale-95"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs shadow-lg shadow-indigo-600/25 transition-all active:scale-95"
           >
             <Compass className="w-4 h-4" />
             <span>Explore Opportunities</span>
           </Link>
           <Link
             href="/dashboard/student/profile"
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-medium text-sm transition-all"
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-2xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 font-medium text-xs transition-all"
           >
             <Sparkles className="w-4 h-4 text-indigo-400" />
-            <span>Update My Skills</span>
+            <span>Refine My Skill Radar</span>
           </Link>
         </div>
       </motion.div>
