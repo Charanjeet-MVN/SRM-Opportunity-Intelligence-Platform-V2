@@ -10,7 +10,7 @@
     --card-foreground: #f4f4f5;
     --popover: #121215;
     --popover-foreground: #f4f4f5;
-    --primary: #6366f1;
+    --primary: #8b5cf6;
     --primary-foreground: #ffffff;
     --secondary: #1e1e24;
     --secondary-foreground: #a1a1aa;
@@ -22,16 +22,18 @@
     --destructive-foreground: #ffffff;
     --border: #27272a;
     --input: #27272a;
-    --ring: #6366f1;
-    --radius: 0.5rem;
+    --ring: #8b5cf6;
+    --radius: 0.75rem;
 
     /* Platform color tokens */
     --indigo: #6366f1;
     --violet: #8b5cf6;
     --emerald: #10b981;
     --sky: #38bdf8;
+    --amber: #f59e0b;
+    --rose: #f43f5e;
     --glow-indigo: rgba(99, 102, 241, 0.15);
-    --glow-violet: rgba(139, 92, 246, 0.12);
+    --glow-violet: rgba(139, 92, 246, 0.15);
   }
 
   * {
@@ -44,20 +46,27 @@
   }
 
   ::selection {
-    background-color: rgb(99 102 241 / 0.3);
-    color: rgb(199 210 254);
+    background-color: rgb(139 92 246 / 0.3);
+    color: rgb(237 233 254);
+  }
+
+  /* Universal Accessibility Focus Visible Standard */
+  :focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px #09090b, 0 0 0 4px rgba(139, 92, 246, 0.6);
   }
 
   /* Premium scrollbar */
   ::-webkit-scrollbar {
-    width: 5px;
+    width: 6px;
+    height: 6px;
   }
   ::-webkit-scrollbar-track {
     background: #09090b;
   }
   ::-webkit-scrollbar-thumb {
     background: #27272a;
-    border-radius: 3px;
+    border-radius: 9999px;
   }
   ::-webkit-scrollbar-thumb:hover {
     background: #3f3f46;
@@ -91,12 +100,12 @@
 }
 
 @keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(99, 102, 241, 0); }
-  50%       { box-shadow: 0 0 0 8px rgba(99, 102, 241, 0.12); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+  50%       { box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.15); }
 }
 
 @keyframes slide-in-up {
-  from { opacity: 0; transform: translateY(20px); }
+  from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0); }
 }
 
@@ -110,14 +119,14 @@
   .animate-shimmer {
     background: linear-gradient(
       90deg,
-      transparent 0%,
-      rgba(255, 255, 255, 0.04) 40%,
-      rgba(255, 255, 255, 0.08) 50%,
-      rgba(255, 255, 255, 0.04) 60%,
-      transparent 100%
+      rgba(255, 255, 255, 0.02) 0%,
+      rgba(255, 255, 255, 0.07) 40%,
+      rgba(255, 255, 255, 0.12) 50%,
+      rgba(255, 255, 255, 0.07) 60%,
+      rgba(255, 255, 255, 0.02) 100%
     );
     background-size: 200% auto;
-    animation: shimmer 2.5s linear infinite;
+    animation: shimmer 2s linear infinite;
   }
 
   .animate-aurora {
@@ -133,11 +142,11 @@
   }
 
   .animate-slide-in-up {
-    animation: slide-in-up 0.5s ease-out forwards;
+    animation: slide-in-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   }
 
   .animate-fade-in {
-    animation: fade-in 0.4s ease-out forwards;
+    animation: fade-in 0.3s ease-out forwards;
   }
 
   /* Glassmorphism utility */
@@ -149,13 +158,20 @@
   }
 
   .glass-card {
-    background: rgba(18, 18, 24, 0.75);
+    background: rgba(18, 18, 24, 0.85);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   /* Text gradient utilities */
+  .text-gradient-purple {
+    background: linear-gradient(135deg, #c084fc, #818cf8);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
   .text-gradient-indigo {
     background: linear-gradient(135deg, #818cf8, #a78bfa);
     -webkit-background-clip: text;
@@ -171,16 +187,16 @@
   }
 
   /* Glow effects */
+  .glow-purple {
+    box-shadow: 0 0 40px rgba(139, 92, 246, 0.15);
+  }
+
   .glow-indigo {
     box-shadow: 0 0 40px rgba(99, 102, 241, 0.15);
   }
 
-  .glow-sm-indigo {
-    box-shadow: 0 0 12px rgba(99, 102, 241, 0.25);
-  }
-
   .glow-card {
-    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(99, 102, 241, 0.12);
+    box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 0 0 20px -5px rgba(139, 92, 246, 0.12);
   }
 
   /* 3D Spatial & Perspective utilities */
@@ -192,8 +208,8 @@
     perspective: 1000px;
   }
 
-  .perspective-1500 {
-    perspective: 1500px;
+  .perspective-1400 {
+    perspective: 1400px;
   }
 
   .perspective-2000 {
@@ -240,16 +256,16 @@
   /* 3D Spatial Shadows & Specular Overlays */
   .shadow-3d-card {
     box-shadow: 
-      0 20px 50px -10px rgba(0, 0, 0, 0.7),
-      0 0 30px -5px rgba(99, 102, 241, 0.15),
-      inset 0 1px 1px 0 rgba(255, 255, 255, 0.1);
+      0 20px 50px -10px rgba(0, 0, 0, 0.75),
+      0 0 30px -5px rgba(139, 92, 246, 0.15),
+      inset 0 1px 1px 0 rgba(255, 255, 255, 0.08);
   }
 
   .shadow-3d-floating {
     box-shadow: 
       0 30px 60px -12px rgba(0, 0, 0, 0.85),
       0 18px 36px -18px rgba(0, 0, 0, 0.9),
-      0 0 40px 0 rgba(99, 102, 241, 0.2);
+      0 0 40px 0 rgba(139, 92, 246, 0.2);
   }
 
   .specular-glare {

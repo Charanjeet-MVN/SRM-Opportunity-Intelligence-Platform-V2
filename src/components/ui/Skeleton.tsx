@@ -1,7 +1,24 @@
 import React from "react";
 
-export default function Skeleton({ className = "" }: { className?: string }) {
+interface SkeletonProps {
+  className?: string;
+  variant?: "rectangular" | "circular" | "text";
+}
+
+export default function Skeleton({
+  className = "",
+  variant = "rectangular",
+}: SkeletonProps) {
+  const variantClass =
+    variant === "circular"
+      ? "rounded-full"
+      : variant === "text"
+      ? "rounded-md h-4"
+      : "rounded-2xl";
+
   return (
-    <div className={`animate-pulse rounded-xl bg-zinc-900/80 border border-zinc-850/80 ${className}`} />
+    <div
+      className={`animate-shimmer bg-zinc-900/90 border border-zinc-800/60 overflow-hidden relative ${variantClass} ${className}`}
+    />
   );
 }
