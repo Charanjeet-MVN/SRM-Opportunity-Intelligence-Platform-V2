@@ -82,6 +82,7 @@ export async function searchCommandPaletteAction(
       { id: "nav-saved", type: "page", title: "Saved Opportunities", subtitle: "View your bookmarked opportunities", url: "/dashboard/student/saved", badge: "Student" },
       { id: "nav-reg", type: "page", title: "My Registrations", subtitle: "Track applied hackathons & events", url: "/dashboard/student/registrations", badge: "Student" },
       { id: "nav-clubs", type: "page", title: "Verified SRM Clubs", subtitle: "Official SRM campus organization directory", url: "/clubs", badge: "Public" },
+      { id: "nav-notifs", type: "page", title: "Notifications & Activity Center", subtitle: "Real-time alerts, deadline reminders, registrations & club dispatches", url: "/dashboard/student/notifications", badge: "Activity" },
       { id: "nav-[cal]", type: "page", title: "Student Calendar", subtitle: "Deadline timeline view", url: "/dashboard/student/calendar", badge: "Student" },
       { id: "nav-prof", type: "page", title: "Student Profile & Vector Settings", subtitle: "Manage skills & preferences", url: "/dashboard/student/profile", badge: "Settings" }
     );

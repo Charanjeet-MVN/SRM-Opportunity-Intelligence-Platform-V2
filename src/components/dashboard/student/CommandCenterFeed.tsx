@@ -13,13 +13,7 @@ import {
   ChevronRight,
   ShieldCheck,
   Calendar,
-  Layers,
   ArrowRight,
-  Flame,
-  Filter,
-  Bookmark,
-  Bell,
-  Compass,
 } from "lucide-react";
 
 interface CommandCenterFeedProps {
@@ -123,7 +117,11 @@ export default function CommandCenterFeed({
     // 3. Newly published opportunities & event announcements
     opportunities.forEach((opp) => {
       const oppDate = opp.createdAt ? new Date(opp.createdAt) : new Date();
-      const isHackOrWorkshop = opp.type === "hackathon" || opp.type === "workshop" || opp.type === "cultural";
+      const isHackOrWorkshop =
+        opp.type === "hackathon" ||
+        opp.type === "workshop" ||
+        opp.type === "competition" ||
+        opp.type === "conference";
 
       list.push({
         id: `opp-${opp.id}`,

@@ -27,6 +27,7 @@ import {
   Layout,
   TrendingUp,
   Layers,
+  Bell,
 } from "lucide-react";
 
 interface GlobalHeaderProps {

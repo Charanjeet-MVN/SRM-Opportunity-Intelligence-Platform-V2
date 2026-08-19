@@ -10,27 +10,18 @@ import {
   dismissNotificationAction,
 } from "@/lib/notifications/actions";
 import {
-  Bell,
   CheckCheck,
   Sparkles,
   Clock,
   ShieldCheck,
-  ExternalLink,
   CheckCircle2,
-  Filter,
   Trash2,
   Undo2,
   Calendar,
-  Layers,
-  ChevronRight,
-  Flame,
-  Radio,
-  ArrowUpRight,
   Search,
   Check,
-  AlertTriangle,
   ArrowRight,
-  Compass,
+  Inbox,
 } from "lucide-react";
 
 interface NotificationCenterFullClientProps {

@@ -283,14 +283,17 @@ export async function getNotificationsAction(): Promise<{
     .order("created_at", { ascending: false })
     .limit(3);
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (latestOpps || []).forEach((opp: any) => {
     // Avoid duplicate notifications if already tracked
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isAlreadySaved = (savedData || []).some((s: any) => s.opportunities?.id === opp.id);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const isAlreadyReg = (regData || []).some((r: any) => r.opportunities?.id === opp.id);
     if (isAlreadySaved || isAlreadyReg) return;
 
     const clubName = opp.clubs?.name || "SRM Organization";
-    const isEvent = opp.type === "hackathon" || opp.type === "workshop" || opp.type === "cultural";
+    const isEvent = opp.type === "hackathon" || opp.type === "workshop" || opp.type === "competition" || opp.type === "conference";
 
     realNotifs.push({
       id: `notif-opp-broadcast-${opp.id}`,

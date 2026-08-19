@@ -11,8 +11,6 @@ import {
   Calendar,
   ChevronRight,
   Flame,
-  AlertTriangle,
-  Sparkles,
 } from "lucide-react";
 import { getDeadlineUrgency } from "@/lib/notifications/urgency";
 
