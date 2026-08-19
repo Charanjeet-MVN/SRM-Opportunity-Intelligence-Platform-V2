@@ -114,15 +114,30 @@ export interface Registration {
   notes?: string;
 }
 
+export type NotificationPriority = 'critical' | 'high' | 'normal' | 'informational';
+export type NotificationCategory = 'event' | 'registration' | 'deadline' | 'club' | 'opportunity' | 'system';
+
 export interface Notification {
   id: string;
   userId: string;
   title: string;
   message: string;
   type: 'info' | 'reminder' | 'verification' | 'alert';
+  priority?: NotificationPriority;
+  category?: NotificationCategory;
+  groupKey?: string;
   linkUrl?: string;
+  actionLabel?: string;
   isRead: boolean;
   createdAt: string;
+  metadata?: {
+    clubName?: string;
+    opportunityTitle?: string;
+    deadlineDate?: string;
+    badgeText?: string;
+    avatarUrl?: string;
+    tag?: string;
+  };
 }
 
 export interface ClubVerificationRequest {
