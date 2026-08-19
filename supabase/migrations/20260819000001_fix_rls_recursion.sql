@@ -44,4 +44,4 @@ CREATE POLICY "Super admins manage verification requests" ON public.club_verific
   );
 
 -- STEP 5: Reload PostgREST schema cache
-
+NOTIFY pgrst, 'reload schema';
