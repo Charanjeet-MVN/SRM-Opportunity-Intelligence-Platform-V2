@@ -254,13 +254,22 @@ export default function GlobalHeader({
                     </Link>
 
                     {isStudent && (
-                      <Link
-                        href="/dashboard/student/calendar"
-                        className="flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-800 transition-colors"
-                      >
-                        <Calendar className="w-4 h-4 text-indigo-400" />
-                        <span>Deadline Calendar</span>
-                      </Link>
+                      <>
+                        <Link
+                          href="/dashboard/student/notifications"
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-800 transition-colors"
+                        >
+                          <Bell className="w-4 h-4 text-indigo-400" />
+                          <span>Activity & Alerts</span>
+                        </Link>
+                        <Link
+                          href="/dashboard/student/calendar"
+                          className="flex items-center gap-2 px-3 py-2 rounded-xl text-zinc-300 hover:bg-zinc-800 transition-colors"
+                        >
+                          <Calendar className="w-4 h-4 text-amber-400" />
+                          <span>Deadline Calendar</span>
+                        </Link>
+                      </>
                     )}
 
                     <div className="border-t border-zinc-800/80 pt-1">

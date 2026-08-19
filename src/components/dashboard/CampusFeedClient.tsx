@@ -521,24 +521,39 @@ export default function CampusFeedClient() {
           </div>
         </div>
 
-        {/* 3. Personal Timeline View */}
+        {/* 3. Personal Activity Timeline View */}
         <div className="p-5 rounded-2xl bg-zinc-900/40 border border-zinc-800 space-y-4">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-indigo-400" />
-            <h2 className="text-xs font-bold text-zinc-200 font-mono">My Activity Timeline</h2>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Compass className="w-4 h-4 text-indigo-400" />
+              <h2 className="text-xs font-bold text-zinc-200 font-mono">My Activity Timeline</h2>
+            </div>
+            <span className="text-[9px] font-mono text-zinc-500 bg-zinc-950 px-2 py-0.5 rounded-full border border-zinc-800">
+              Live Stream
+            </span>
           </div>
 
-          <div className="relative pl-4 border-l border-zinc-800 space-y-4 text-xs font-mono">
+          <div className="relative pl-5 border-l border-zinc-800/80 space-y-4 text-xs font-mono">
             {personalTimeline.map((item, idx) => (
-              <div key={idx} className="relative">
-                {/* Dot */}
-                <div className="absolute -left-[20px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 border border-zinc-950" />
-                <div className="space-y-0.5">
-                  <h4 className="text-[11px] font-bold text-zinc-200 leading-snug">{item.title}</h4>
-                  <p className="text-[10px] text-zinc-500">{item.desc}</p>
-                  <span className="text-[9px] text-zinc-600 block">{item.time}</span>
+              <motion.div
+                key={idx}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: idx * 0.05, duration: 0.2 }}
+                className="relative group/timeline"
+              >
+                {/* Glowing Node */}
+                <div className="absolute -left-[25px] top-1 w-3 h-3 rounded-full bg-zinc-950 border border-indigo-500/50 flex items-center justify-center">
+                  <span className="w-1.5 h-1.5 rounded-full bg-indigo-400 group-hover/timeline:scale-125 transition-transform" />
                 </div>
-              </div>
+                <div className="p-2.5 rounded-xl bg-zinc-950/60 border border-zinc-850 hover:border-zinc-750 transition-colors space-y-1">
+                  <h4 className="text-[11px] font-bold text-zinc-200 group-hover/timeline:text-indigo-300 transition-colors leading-snug">
+                    {item.title}
+                  </h4>
+                  <p className="text-[10px] text-zinc-400 leading-relaxed font-light">{item.desc}</p>
+                  <span className="text-[9px] text-zinc-500 block font-mono">{item.time}</span>
+                </div>
+              </motion.div>
             ))}
           </div>
         </div>
