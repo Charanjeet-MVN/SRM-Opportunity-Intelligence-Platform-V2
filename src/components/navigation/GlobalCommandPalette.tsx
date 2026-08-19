@@ -289,6 +289,7 @@ export default function GlobalCommandPalette({
               role="combobox"
               aria-autocomplete="list"
               aria-expanded={isOpen}
+              aria-controls="command-results-list"
               aria-label="Search opportunities, organizations, or commands"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
@@ -309,7 +310,7 @@ export default function GlobalCommandPalette({
           </div>
 
           {/* Search Results List */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-4 font-mono scrollbar-none">
+          <div id="command-results-list" role="listbox" className="flex-1 overflow-y-auto p-3 space-y-4 font-mono scrollbar-none">
             {loading && (
               <div className="p-8 text-center flex flex-col items-center justify-center gap-2">
                 <Loader2 className="w-5 h-5 text-purple-400 animate-spin" />

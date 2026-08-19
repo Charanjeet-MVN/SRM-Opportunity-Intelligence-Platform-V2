@@ -23,10 +23,7 @@ import {
   BarChart3,
   Award,
   FileText,
-  Cpu,
   Layout,
-  TrendingUp,
-  Layers,
   Bell,
 } from "lucide-react";
 

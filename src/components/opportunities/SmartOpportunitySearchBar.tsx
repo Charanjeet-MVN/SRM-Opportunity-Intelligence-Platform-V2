@@ -83,6 +83,8 @@ export default function SmartOpportunitySearchBar({
           <input
             ref={inputRef}
             type="text"
+            role="searchbox"
+            aria-label="Search opportunities by keyword, role, or department"
             value={value}
             onFocus={() => setIsFocused(true)}
             onBlur={() => setTimeout(() => setIsFocused(false), 150)}

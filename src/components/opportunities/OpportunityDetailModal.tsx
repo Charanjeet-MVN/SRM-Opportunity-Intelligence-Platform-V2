@@ -64,6 +64,9 @@ export function OpportunityDetailModal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 16 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="opportunity-modal-title"
             className="relative w-full max-w-3xl bg-zinc-950 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden z-10 my-8 max-h-[85vh] flex flex-col justify-between"
           >
             {/* Modal Header */}
@@ -78,13 +81,14 @@ export function OpportunityDetailModal({
 
                 <button
                   onClick={onClose}
+                  aria-label="Close details modal"
                   className="p-2 rounded-xl bg-zinc-900 text-zinc-400 hover:text-white border border-zinc-800 transition-colors cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <h2 className="text-xl sm:text-2xl font-bold text-zinc-100 leading-tight mb-2">
+              <h2 id="opportunity-modal-title" className="text-xl sm:text-2xl font-bold text-zinc-100 leading-tight mb-2">
                 {opportunity.title}
               </h2>
 
