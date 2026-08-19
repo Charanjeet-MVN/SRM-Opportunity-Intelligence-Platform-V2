@@ -114,6 +114,61 @@
   to   { opacity: 1; }
 }
 
+/* ─── Standardized Design System Utilities ─── */
+@layer components {
+  /* Standard Button Primitives */
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-semibold text-xs transition-all shadow-lg shadow-indigo-600/25 hover:shadow-indigo-500/40 active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-200 hover:text-white font-medium text-xs transition-all active:scale-[0.98] cursor-pointer disabled:opacity-50 disabled:pointer-events-none;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl text-zinc-400 hover:text-zinc-100 hover:bg-zinc-900/80 transition-colors text-xs cursor-pointer;
+  }
+
+  .btn-outline {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl bg-transparent border border-zinc-750 hover:border-indigo-500/60 text-zinc-300 hover:text-white transition-all text-xs cursor-pointer active:scale-[0.98];
+  }
+
+  /* Standard Input Primitives */
+  .input-premium {
+    @apply w-full bg-zinc-950/80 border border-zinc-800 hover:border-zinc-700 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/20 rounded-xl px-3.5 py-2.5 text-xs font-mono text-zinc-100 placeholder:text-zinc-500 transition-all outline-none;
+  }
+
+  /* Standard Badge Primitives */
+  .badge-premium {
+    @apply inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider border;
+  }
+
+  .badge-indigo {
+    @apply bg-indigo-500/10 text-indigo-300 border-indigo-500/25;
+  }
+
+  .badge-emerald {
+    @apply bg-emerald-500/10 text-emerald-300 border-emerald-500/25;
+  }
+
+  .badge-amber {
+    @apply bg-amber-500/10 text-amber-300 border-amber-500/25;
+  }
+
+  .badge-rose {
+    @apply bg-rose-500/10 text-rose-300 border-rose-500/25;
+  }
+
+  /* Standard Card Primitives */
+  .card-premium {
+    @apply rounded-3xl bg-zinc-950/80 border border-zinc-800/80 shadow-2xl backdrop-blur-2xl transition-all duration-300;
+  }
+
+  .card-interactive {
+    @apply card-premium hover:border-zinc-700 hover:shadow-indigo-950/20 hover:-translate-y-0.5 cursor-pointer;
+  }
+}
+
 /* ─── Utility Classes ─── */
 @layer utilities {
   .animate-shimmer {

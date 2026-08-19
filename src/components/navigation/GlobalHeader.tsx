@@ -69,9 +69,9 @@ export default function GlobalHeader({
             </Link>
 
             {/* Navigation Tabs */}
-            <nav className="hidden md:flex items-center gap-1">
+            <nav className="hidden lg:flex items-center gap-1 overflow-x-auto scrollbar-none py-1">
               <NavLink href="/opportunities" active={pathname === "/opportunities"}>
-                <Compass className="w-3.5 h-3.5 text-purple-400" />
+                <Compass className="w-3.5 h-3.5 text-indigo-400" />
                 <span>Explore</span>
               </NavLink>
 
@@ -82,57 +82,29 @@ export default function GlobalHeader({
 
               {isStudent && (
                 <>
-                  <NavLink href="/dashboard/student/feed" active={pathname === "/dashboard/student/feed"}>
-                    <Award className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Showcase Feed</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/resume" active={pathname === "/dashboard/student/resume"}>
-                    <FileText className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Resume Lab</span>
-                  </NavLink>
                   <NavLink href="/dashboard/student" active={pathname === "/dashboard/student"}>
                     <Layout className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Dashboard</span>
+                    <span>Cockpit</span>
                   </NavLink>
-                  <NavLink href="/dashboard/student/workspace" active={pathname === "/dashboard/student/workspace"}>
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    <span>AI Workspace</span>
+                  <NavLink href="/dashboard/student/feed" active={pathname === "/dashboard/student/feed"}>
+                    <Award className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Showcase</span>
                   </NavLink>
-                  <NavLink href="/dashboard/student/agents" active={pathname === "/dashboard/student/agents"}>
-                    <Cpu className="w-3.5 h-3.5 text-purple-400" />
-                    <span>AI Agents</span>
+                  <NavLink href="/dashboard/student/calendar" active={pathname === "/dashboard/student/calendar"}>
+                    <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                    <span>Radar</span>
                   </NavLink>
                   <NavLink href="/dashboard/student/saved" active={pathname.includes("/saved")}>
                     <Bookmark className="w-3.5 h-3.5 text-zinc-400" />
                     <span>Saved</span>
                   </NavLink>
-                  <NavLink href="/dashboard/student/analytics" active={pathname === "/dashboard/student/analytics"}>
-                    <BarChart3 className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Impact Center</span>
+                  <NavLink href="/dashboard/student/resume" active={pathname === "/dashboard/student/resume"}>
+                    <FileText className="w-3.5 h-3.5 text-purple-400" />
+                    <span>Resume Lab</span>
                   </NavLink>
-                  <NavLink href="/dashboard/student/opportunity-intelligence" active={pathname === "/dashboard/student/opportunity-intelligence"}>
-                    <TrendingUp className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Opportunity Terminal</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/operating-system" active={pathname === "/dashboard/student/operating-system"}>
-                    <Layers className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Student OS</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/war-room" active={pathname === "/dashboard/student/war-room"}>
-                    <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
-                    <span>War Room</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/autopilot" active={pathname === "/dashboard/student/autopilot"}>
+                  <NavLink href="/dashboard/student/workspace" active={pathname === "/dashboard/student/workspace"}>
                     <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Autopilot</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/mentors" active={pathname === "/dashboard/student/mentors"}>
-                    <Compass className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Mentors</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/career-hq" active={pathname === "/dashboard/student/career-hq"}>
-                    <Layout className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Career HQ</span>
+                    <span>AI Workspace</span>
                   </NavLink>
                 </>
               )}
