@@ -50,7 +50,9 @@ export default function OpportunityCard({
     >
       <div
         onClick={handleCardClick}
-        className="group rounded-3xl bg-zinc-950/80 border border-zinc-800/80 hover:border-indigo-500/50 p-6 flex flex-col justify-between transition-colors duration-300 shadow-xl relative overflow-hidden backdrop-blur-xl h-full preserve-3d"
+        role="article"
+        aria-label={`Opportunity: ${opportunity.title}`}
+        className="group rounded-3xl bg-zinc-950/80 border border-zinc-800/80 hover:border-indigo-500/50 p-5 sm:p-6 flex flex-col justify-between transition-all duration-300 shadow-xl relative overflow-hidden backdrop-blur-xl h-full preserve-3d"
       >
         {/* Top Border Specular Illumination */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-indigo-500/0 to-transparent group-hover:via-indigo-500/80 transition-all duration-500 pointer-events-none" />

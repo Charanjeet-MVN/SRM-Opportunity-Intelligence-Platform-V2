@@ -271,6 +271,9 @@ export default function GlobalCommandPalette({
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.97, y: -12 }}
           transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Command Palette"
           className="w-full max-w-2xl bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] relative"
           onKeyDown={handleKeyDownInPalette}
         >
@@ -283,6 +286,10 @@ export default function GlobalCommandPalette({
             <input
               ref={inputRef}
               type="text"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-expanded={isOpen}
+              aria-label="Search opportunities, organizations, or commands"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search opportunities, clubs, settings, or actions..."

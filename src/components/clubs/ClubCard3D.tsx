@@ -24,7 +24,11 @@ export default function ClubCard3D({ club }: ClubCard3DProps) {
       glowColor="rgba(147, 51, 234, 0.18)"
       className="h-full"
     >
-      <div className="group rounded-3xl bg-zinc-950/85 border border-zinc-800/80 hover:border-purple-500/50 p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl backdrop-blur-xl h-full space-y-5 relative overflow-hidden">
+      <div
+        role="article"
+        aria-label={`Club: ${club.name}`}
+        className="group rounded-3xl bg-zinc-950/85 border border-zinc-800/80 hover:border-purple-500/50 p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl backdrop-blur-xl h-full space-y-5 relative overflow-hidden"
+      >
         {/* Top ambient illumination line */}
         <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500/0 to-transparent group-hover:via-purple-500/60 transition-all duration-500 pointer-events-none" />
 

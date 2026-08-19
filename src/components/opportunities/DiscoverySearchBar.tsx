@@ -117,7 +117,7 @@ export default function DiscoverySearchBar({
   return (
     <div ref={containerRef} className="relative w-full font-mono">
       {/* Search Input Box */}
-      <form onSubmit={handleSubmit} className="relative">
+      <form onSubmit={handleSubmit} role="search" aria-label="Opportunity search" className="relative">
         <div className="relative flex items-center">
           <div className="absolute left-4.5 pointer-events-none text-zinc-400">
             {isSearching ? (
@@ -129,6 +129,8 @@ export default function DiscoverySearchBar({
 
           <input
             type="text"
+            role="searchbox"
+            aria-label="Search opportunities by title, organization, or skills"
             value={value}
             onChange={(e) => onChange(e.target.value)}
             onFocus={() => setIsOpen(true)}
