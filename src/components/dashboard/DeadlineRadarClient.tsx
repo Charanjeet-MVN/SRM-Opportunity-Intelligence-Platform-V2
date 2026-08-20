@@ -3,18 +3,15 @@
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Opportunity, StudentProfile } from "@/types";
+import { StudentProfile } from "@/types";
 import { TrackerOpportunity } from "@/components/opportunities/StudentOpportunityTracker";
 import { calculateOpportunityRelevance, RelevanceScoreResult } from "@/lib/relevance/scoring";
 import { getDeadlineUrgency } from "@/lib/notifications/urgency";
 import BookmarkButton from "@/components/opportunities/BookmarkButton";
-import RegisterApplyButton from "@/components/opportunities/RegisterApplyButton";
 import SpatialCard3D from "@/components/3d/SpatialCard3D";
-import VerificationBadge from "@/components/clubs/VerificationBadge";
 import {
   Clock,
   Calendar,
-  AlertTriangle,
   CheckCircle2,
   Flame,
   Search,
@@ -22,16 +19,12 @@ import {
   ArrowRight,
   ChevronRight,
   ChevronLeft,
-  Sparkles,
   Layers,
   Compass,
   Bookmark,
   CalendarDays,
-  ListFilter,
   Check,
   Building2,
-  MapPin,
-  ExternalLink,
   Zap,
 } from "lucide-react";
 
@@ -43,13 +36,6 @@ export interface TimelineMilestone {
   opportunitySlug: string;
   clubName: string;
   opportunityType: string;
-}
-
-interface DeadlineRadarClientProps {
-  savedOpportunities: TrackerOpportunity[];
-  registeredOpportunities: TrackerOpportunity[];
-  timelineEvents: TimelineMilestone[];
-  studentProfile: StudentProfile | null;
 }
 
 type ViewMode = "radar" | "calendar" | "kanban";
@@ -64,15 +50,6 @@ const containerVariants = {
   },
 };
 
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-  },
-};
-
 interface ProcessedRadarItem extends TrackerOpportunity {
   urgency: ReturnType<typeof getDeadlineUrgency>;
   relevance: RelevanceScoreResult;
@@ -82,10 +59,16 @@ interface ProcessedRadarItem extends TrackerOpportunity {
   remainingText: string;
 }
 
+interface DeadlineRadarClientProps {
+  savedOpportunities: TrackerOpportunity[];
+  registeredOpportunities: TrackerOpportunity[];
+  timelineEvents?: TimelineMilestone[];
+  studentProfile: StudentProfile | null;
+}
+
 export default function DeadlineRadarClient({
   savedOpportunities,
   registeredOpportunities,
-  timelineEvents,
   studentProfile,
 }: DeadlineRadarClientProps) {
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
@@ -270,6 +253,15 @@ export default function DeadlineRadarClient({
         const list = map.get(key) || [];
         list.push(item);
         map.set(key, list);
+      }
+      if (item.eventStartDate) {
+        const d = new Date(item.eventStartDate);
+        const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+        const list = map.get(key) || [];
+        if (!list.some((existing) => existing.id === item.id)) {
+          list.push(item);
+          map.set(key, list);
+        }
       }
     });
     return map;

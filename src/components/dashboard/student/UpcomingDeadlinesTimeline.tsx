@@ -56,7 +56,7 @@ export default function UpcomingDeadlinesTimeline({
           href="/dashboard/student/calendar"
           className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-xs font-mono font-medium text-amber-400 hover:text-amber-300 transition-all cursor-pointer shadow-sm active:scale-95"
         >
-          <span>Calendar Timeline View</span>
+          <span>Open Deadline Radar</span>
           <ArrowRight className="w-3.5 h-3.5" />
         </Link>
       </div>
