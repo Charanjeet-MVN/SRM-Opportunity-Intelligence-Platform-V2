@@ -1,12 +1,19 @@
 "use client";
 
 import React, { useRef, useState, useCallback } from "react";
-import { motion, useMotionValue, useSpring, useTransform } from "framer-motion";
+import {
+  motion,
+  useMotionValue,
+  useSpring,
+  useTransform,
+  useMotionTemplate,
+  useReducedMotion,
+} from "framer-motion";
 
 interface SpatialCard3DProps {
   children: React.ReactNode;
   className?: string;
-  depth?: number; // max tilt degrees (default 12)
+  depth?: number; // max tilt degrees (default 10)
   glareOpacity?: number; // 0 to 1
   perspective?: number; // default 1200
   scaleOnHover?: number; // default 1.02
@@ -26,6 +33,7 @@ export default function SpatialCard3D({
 }: SpatialCard3DProps) {
   const cardRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
+  const shouldReduceMotion = useReducedMotion();
 
   // Raw cursor position normalized (-0.5 to 0.5)
   const mouseX = useMotionValue(0);
@@ -35,19 +43,34 @@ export default function SpatialCard3D({
   const glareX = useMotionValue(50);
   const glareY = useMotionValue(50);
 
-  // Smooth spring physics
-  const springConfig = { damping: 20, stiffness: 260, mass: 0.6 };
-  const rotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [depth, -depth]), springConfig);
-  const rotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-depth, depth]), springConfig);
-  const scale = useSpring(isHovered ? scaleOnHover : 1, springConfig);
-  const translateZ = useSpring(isHovered ? elevationZ : 0, springConfig);
+  // Smooth spring physics (disabled if user prefers reduced motion)
+  const effectiveDepth = shouldReduceMotion ? 0 : depth;
+  const effectiveElevation = shouldReduceMotion ? 0 : elevationZ;
+  const effectiveScale = shouldReduceMotion ? 1 : scaleOnHover;
+
+  const springConfig = { damping: 22, stiffness: 240, mass: 0.6 };
+  const rotateX = useSpring(
+    useTransform(mouseY, [-0.5, 0.5], [effectiveDepth, -effectiveDepth]),
+    springConfig
+  );
+  const rotateY = useSpring(
+    useTransform(mouseX, [-0.5, 0.5], [-effectiveDepth, effectiveDepth]),
+    springConfig
+  );
+  const scale = useSpring(isHovered ? effectiveScale : 1, springConfig);
+  const translateZ = useSpring(isHovered ? effectiveElevation : 0, springConfig);
+
+  // Reactive motion templates for GPU-accelerated specular gradients
+  const glowBackground = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, ${glowColor}, transparent 70%)`;
+  const glareBackground = useMotionTemplate`radial-gradient(circle at ${glareX}% ${glareY}%, rgba(255, 255, 255, ${glareOpacity}) 0%, transparent 60%)`;
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (!cardRef.current) return;
+      if (shouldReduceMotion || !cardRef.current) return;
       const rect = cardRef.current.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;
+      if (width === 0 || height === 0) return;
 
       const clientX = e.clientX - rect.left;
       const clientY = e.clientY - rect.top;
@@ -58,10 +81,10 @@ export default function SpatialCard3D({
       mouseX.set(normX);
       mouseY.set(normY);
 
-      glareX.set((clientX / width) * 100);
-      glareY.set((clientY / height) * 100);
+      glareX.set(Math.max(0, Math.min(100, (clientX / width) * 100)));
+      glareY.set(Math.max(0, Math.min(100, (clientY / height) * 100)));
     },
-    [mouseX, mouseY, glareX, glareY]
+    [mouseX, mouseY, glareX, glareY, shouldReduceMotion]
   );
 
   const handleMouseEnter = () => {
@@ -82,7 +105,7 @@ export default function SpatialCard3D({
       onMouseMove={handleMouseMove}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      style={{ perspective: `${perspective}px` }}
+      style={{ perspective: shouldReduceMotion ? "none" : `${perspective}px` }}
       className="relative"
     >
       <motion.div
@@ -91,37 +114,42 @@ export default function SpatialCard3D({
           rotateY,
           scale,
           z: translateZ,
-          transformStyle: "preserve-3d",
+          transformStyle: shouldReduceMotion ? "flat" : "preserve-3d",
         }}
         className={`relative rounded-3xl transition-shadow duration-300 ${
           isHovered ? "shadow-3d-floating" : "shadow-3d-card"
         } ${className}`}
       >
         {/* Dynamic 3D Radial Glow underneath */}
-        <motion.div
-          style={{
-            background: `radial-gradient(circle at ${glareX.get()}% ${glareY.get()}%, ${glowColor}, transparent 70%)`,
-            opacity: isHovered ? 1 : 0,
-            transform: "translateZ(-10px)",
-          }}
-          className="absolute -inset-2 rounded-3xl blur-xl pointer-events-none transition-opacity duration-500"
-        />
+        {!shouldReduceMotion && (
+          <motion.div
+            style={{
+              background: glowBackground,
+              opacity: isHovered ? 1 : 0,
+              transform: "translateZ(-10px)",
+            }}
+            className="absolute -inset-2 rounded-3xl blur-xl pointer-events-none transition-opacity duration-500"
+          />
+        )}
 
         {/* Card Content with 3D Preservation */}
-        <div className="relative z-10 preserve-3d w-full h-full">
+        <div className={`relative z-10 w-full h-full ${shouldReduceMotion ? "" : "preserve-3d"}`}>
           {children}
         </div>
 
         {/* Specular Glare Reflection Layer */}
-        <motion.div
-          style={{
-            background: `radial-gradient(circle at ${glareX.get()}% ${glareY.get()}%, rgba(255, 255, 255, ${glareOpacity}) 0%, transparent 60%)`,
-            opacity: isHovered ? 1 : 0,
-            transform: "translateZ(30px)",
-          }}
-          className="absolute inset-0 rounded-3xl pointer-events-none transition-opacity duration-300 mix-blend-overlay"
-        />
+        {!shouldReduceMotion && (
+          <motion.div
+            style={{
+              background: glareBackground,
+              opacity: isHovered ? 1 : 0,
+              transform: "translateZ(30px)",
+            }}
+            className="absolute inset-0 rounded-3xl pointer-events-none transition-opacity duration-300 mix-blend-overlay"
+          />
+        )}
       </motion.div>
     </div>
   );
 }
+

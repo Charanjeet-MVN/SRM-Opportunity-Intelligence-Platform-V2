@@ -9,22 +9,15 @@ import VerificationBadge from "../clubs/VerificationBadge";
 import BookmarkButton from "./BookmarkButton";
 import { updateOpportunityTrackerColumnAction } from "@/lib/engagement/actions";
 import {
-  Bookmark,
-  UserCheck,
   Clock,
   MapPin,
-  ArrowRight,
   CheckCircle2,
   AlertTriangle,
-  Calendar,
   Search,
   Filter,
   Layers,
   ChevronRight,
   Plus,
-  Briefcase,
-  Trophy,
-  Loader2,
   Flame,
   Award,
 } from "lucide-react";

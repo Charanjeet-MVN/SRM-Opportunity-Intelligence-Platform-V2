@@ -3,8 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowLeft, Compass } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 // Redesigned Modular Profile Components
 import StudentProfileHero from "@/components/profile/StudentProfileHero";

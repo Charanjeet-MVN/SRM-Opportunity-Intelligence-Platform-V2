@@ -5,7 +5,7 @@ import { PublicClubRecord } from "@/lib/clubs/actions";
 import ClubDirectoryHero from "./ClubDirectoryHero";
 import ClubCard3D from "./ClubCard3D";
 import { motion, AnimatePresence } from "framer-motion";
-import { Building2, Layers, Search, RefreshCw } from "lucide-react";
+import { Building2, RefreshCw } from "lucide-react";
 
 interface ClubDirectoryClientProps {
   initialClubs: PublicClubRecord[];

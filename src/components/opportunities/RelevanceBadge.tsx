@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { RelevanceScoreResult } from "@/lib/relevance/scoring";
-import { Sparkles, CheckCircle2, AlertCircle, ChevronDown } from "lucide-react";
+import { Sparkles, CheckCircle2, ChevronDown } from "lucide-react";
 
 interface RelevanceBadgeProps {
   relevance: RelevanceScoreResult;

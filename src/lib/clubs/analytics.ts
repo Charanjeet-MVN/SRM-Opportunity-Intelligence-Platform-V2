@@ -100,7 +100,6 @@ export async function getClubAnalyticsAction(): Promise<{
 
   let totalSavedBookmarks = 0;
   const oppSavedMap: Record<string, number> = {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const savedTimeline: { date: string; opportunityTitle: string }[] = [];
 
   if (oppIds.length > 0) {
@@ -122,7 +121,6 @@ export async function getClubAnalyticsAction(): Promise<{
   let totalApplicationsRecorded = 0;
   const oppRegMap: Record<string, number> = {};
   const oppCompletedMap: Record<string, number> = {};
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const registrationTimeline: { date: string; opportunityTitle: string; status: string }[] = [];
 
   if (oppIds.length > 0) {

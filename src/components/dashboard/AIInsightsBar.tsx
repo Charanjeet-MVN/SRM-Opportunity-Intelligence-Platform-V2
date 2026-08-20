@@ -2,7 +2,7 @@ import React from "react";
 import { generateAIStudentOverview } from "@/lib/ai/recommendations";
 import { Opportunity, StudentProfile } from "@/types";
 import { RelevanceScoreResult } from "@/lib/relevance/scoring";
-import { Sparkles, Zap, ShieldAlert, ArrowRight } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 import Link from "next/link";
 
 interface AIInsightsBarProps {

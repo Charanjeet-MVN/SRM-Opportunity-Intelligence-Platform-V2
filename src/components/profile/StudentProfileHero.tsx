@@ -78,7 +78,7 @@ export default function StudentProfileHero({
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
               </span>
               <span className="text-purple-400 font-semibold uppercase tracking-wider text-[9px]">
-                SRM Student Identity
+                {isPublicView ? "SRM Public Showcase" : "SRM Student Identity"}
               </span>
               <span className="text-zinc-600">•</span>
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />

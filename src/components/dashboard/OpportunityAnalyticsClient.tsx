@@ -11,12 +11,7 @@ import {
   Activity,
   Sparkles,
   ArrowLeft,
-  HelpCircle,
   Users,
-  CheckCircle2,
-  Calendar,
-  Layers,
-  ChevronDown,
   Info,
 } from "lucide-react";
 

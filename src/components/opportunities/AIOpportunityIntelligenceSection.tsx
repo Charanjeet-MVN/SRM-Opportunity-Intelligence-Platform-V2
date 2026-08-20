@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Opportunity, StudentProfile } from "@/types";
 import {
@@ -21,13 +21,12 @@ import {
 interface AIOpportunityIntelligenceSectionProps {
   opportunity: Opportunity;
   profile: StudentProfile | null;
-  isAuthenticated: boolean;
+  isAuthenticated?: boolean;
 }
 
 export default function AIOpportunityIntelligenceSection({
   opportunity,
   profile,
-  isAuthenticated,
 }: AIOpportunityIntelligenceSectionProps) {
   const [summary, setSummary] = useState<AIOpportunitySummary | null>(null);
   const [insight, setInsight] = useState<AIPersonalizedInsight | null>(null);
@@ -36,11 +35,7 @@ export default function AIOpportunityIntelligenceSection({
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<"summary" | "insight">("insight");
 
-  useEffect(() => {
-    fetchIntelligence();
-  }, [opportunity.id, profile?.id]);
-
-  async function fetchIntelligence() {
+  const fetchIntelligence = useCallback(async () => {
     setLoading(true);
     setError(null);
 
@@ -69,7 +64,11 @@ export default function AIOpportunityIntelligenceSection({
       setLoading(false);
       setError("AI insights are temporarily unavailable.");
     }
-  }
+  }, [opportunity, profile]);
+
+  useEffect(() => {
+    fetchIntelligence();
+  }, [fetchIntelligence]);
 
   return (
     <motion.div

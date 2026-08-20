@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { RelevanceScoreResult } from "@/lib/relevance/scoring";
 import { generateAIOpportunityAnalysis } from "@/lib/ai/recommendations";
 import { Opportunity, StudentProfile } from "@/types";
-import { Sparkles, CheckCircle2, Zap, AlertCircle, ChevronDown, ArrowRight } from "lucide-react";
+import { Sparkles, CheckCircle2, Zap, ChevronDown } from "lucide-react";
 
 interface AnimatedMatchBadgeProps {
   relevance: RelevanceScoreResult;

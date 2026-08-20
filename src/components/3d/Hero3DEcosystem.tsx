@@ -86,18 +86,27 @@ const FEATURED_3D_OPPORTUNITIES: FloatingCardSpec[] = [
   },
 ];
 
+import { useReducedMotion } from "framer-motion";
+
 export default function Hero3DEcosystem() {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [activeCategory, setActiveCategory] = useState<string>("All");
+  const shouldReduceMotion = useReducedMotion();
 
   // Mouse Parallax Physics for the 3D Stage
   const mouseX = useMotionValue(0);
   const mouseY = useMotionValue(0);
 
   const springConfig = { damping: 25, stiffness: 180, mass: 0.8 };
-  const stageRotateX = useSpring(useTransform(mouseY, [-0.5, 0.5], [6, -6]), springConfig);
-  const stageRotateY = useSpring(useTransform(mouseX, [-0.5, 0.5], [-8, 8]), springConfig);
+  const stageRotateX = useSpring(
+    useTransform(mouseY, [-0.5, 0.5], shouldReduceMotion ? [0, 0] : [6, -6]),
+    springConfig
+  );
+  const stageRotateY = useSpring(
+    useTransform(mouseX, [-0.5, 0.5], shouldReduceMotion ? [0, 0] : [-8, 8]),
+    springConfig
+  );
 
   // Three.js WebGL Particle Constellation & Volumetric Grid
   useEffect(() => {
@@ -119,6 +128,7 @@ export default function Hero3DEcosystem() {
       if (!containerRef.current) return;
       const width = containerRef.current.clientWidth;
       const height = containerRef.current.clientHeight;
+      if (width === 0 || height === 0) return;
       camera.aspect = width / height;
       camera.updateProjectionMatrix();
       renderer.setSize(width, height);
@@ -126,10 +136,10 @@ export default function Hero3DEcosystem() {
     };
 
     updateSize();
-    window.addEventListener("resize", updateSize);
+    window.addEventListener("resize", updateSize, { passive: true });
 
-    // Particle Cloud Geometry
-    const particleCount = 180;
+    // Particle Cloud Geometry (scaled down for reduced motion or mobile)
+    const particleCount = shouldReduceMotion ? 60 : 180;
     const geometry = new THREE.BufferGeometry();
     const positions = new Float32Array(particleCount * 3);
     const colors = new Float32Array(particleCount * 3);
@@ -174,7 +184,7 @@ export default function Hero3DEcosystem() {
     const lineGeo = new THREE.BufferGeometry();
     const linePositions: number[] = [];
 
-    for (let i = 0; i < 40; i++) {
+    for (let i = 0; i < (shouldReduceMotion ? 15 : 40); i++) {
       const idx1 = Math.floor(Math.random() * particleCount);
       const idx2 = Math.floor(Math.random() * particleCount);
 
@@ -192,11 +202,15 @@ export default function Hero3DEcosystem() {
     const lines = new THREE.LineSegments(lineGeo, lineMat);
     scene.add(lines);
 
+    // Initial render
+    renderer.render(scene, camera);
+
     // Animation Loop
     let animationFrameId: number;
     const clock = new THREE.Clock();
 
     const animate = () => {
+      if (shouldReduceMotion) return;
       animationFrameId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
@@ -207,21 +221,23 @@ export default function Hero3DEcosystem() {
       renderer.render(scene, camera);
     };
 
-    animate();
+    if (!shouldReduceMotion) {
+      animate();
+    }
 
     return () => {
       window.removeEventListener("resize", updateSize);
-      cancelAnimationFrame(animationFrameId);
+      if (animationFrameId) cancelAnimationFrame(animationFrameId);
       geometry.dispose();
       material.dispose();
       lineGeo.dispose();
       lineMat.dispose();
       renderer.dispose();
     };
-  }, []);
+  }, [shouldReduceMotion]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!containerRef.current) return;
+    if (shouldReduceMotion || !containerRef.current) return;
     const rect = containerRef.current.getBoundingClientRect();
     const x = (e.clientX - rect.left) / rect.width - 0.5;
     const y = (e.clientY - rect.top) / rect.height - 0.5;

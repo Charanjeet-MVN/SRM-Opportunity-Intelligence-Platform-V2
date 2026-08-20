@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
-import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import { getPublicOpportunitiesAction } from "@/lib/opportunities/actions";
 import OpportunityDiscoveryHub from "@/components/opportunities/OpportunityDiscoveryHub";

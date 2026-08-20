@@ -12,11 +12,8 @@ import {
   Sparkles,
   ArrowRight,
   Layers,
-  Award,
-  Calendar,
   Activity,
   ChevronRight,
-  Clock,
   CheckCircle2,
 } from "lucide-react";
 

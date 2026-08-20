@@ -4,12 +4,10 @@ import React from "react";
 import { motion } from "framer-motion";
 import { PublicClubRecord } from "@/lib/clubs/actions";
 import {
-  Award,
   Trophy,
   Users,
   Calendar,
   CheckCircle2,
-  Sparkles,
   ShieldCheck,
 } from "lucide-react";
 

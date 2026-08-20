@@ -296,6 +296,15 @@ export default function FeaturedEventHero({
                 externalUrl={currentEvent.externalUrl}
               />
               <BookmarkButton opportunityId={currentEvent.id} />
+              {onSelectDetail && (
+                <button
+                  type="button"
+                  onClick={() => onSelectDetail(currentEvent)}
+                  className="px-4 py-2.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-xs font-mono font-medium text-indigo-200 transition-colors inline-flex items-center gap-1.5 cursor-pointer"
+                >
+                  <span>Quick Preview</span>
+                </button>
+              )}
               <Link
                 href={`/opportunities/${currentEvent.slug}`}
                 className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono font-medium text-zinc-200 hover:text-white transition-colors inline-flex items-center gap-1.5"

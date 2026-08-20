@@ -31,7 +31,6 @@ import {
   Loader2,
   BarChart3,
   Activity,
-  TrendingUp,
   Sparkles,
   Award,
   Bookmark,

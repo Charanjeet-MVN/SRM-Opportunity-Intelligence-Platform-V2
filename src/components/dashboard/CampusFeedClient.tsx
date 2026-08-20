@@ -9,19 +9,13 @@ import {
   Share2,
   Plus,
   Search,
-  Calendar,
   Award,
   Zap,
-  User,
   MessageSquare,
-  Building2,
   Clock,
   TrendingUp,
   Flame,
-  ArrowRight,
-  TrendingDown,
   Compass,
-  CheckCircle,
 } from "lucide-react";
 
 interface Post {

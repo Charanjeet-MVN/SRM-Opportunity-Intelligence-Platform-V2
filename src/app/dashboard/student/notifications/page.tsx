@@ -1,7 +1,7 @@
 import React from "react";
 import { getNotificationsAction } from "@/lib/notifications/actions";
 import NotificationCenterFullClient from "@/components/notifications/NotificationCenterFullClient";
-import { Bell, Radio, Sparkles } from "lucide-react";
+import { Radio } from "lucide-react";
 
 export const metadata = {
   title: "Activity & Notifications Hub | SRM Opportunity Intelligence Platform",

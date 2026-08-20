@@ -11,18 +11,12 @@ import {
   XCircle,
   Sparkles,
   ArrowRight,
-  UserCheck,
-  Code,
-  GraduationCap,
-  Building2,
-  Clock,
-  ShieldCheck,
 } from "lucide-react";
 
 interface OpportunityEvaluationSectionProps {
   opportunity: Opportunity;
   profile: StudentProfile | null;
-  isAuthenticated: boolean;
+  isAuthenticated?: boolean;
 }
 
 export default function OpportunityEvaluationSection({

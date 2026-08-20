@@ -67,24 +67,15 @@ export async function searchCommandPaletteAction(
   // 1. Static Role-Specific Navigation Pages
   if (role === "student" || role === "guest") {
     items.push(
-      { id: "nav-opps", type: "page", title: "Explore Opportunities", subtitle: "Browse verified campus opportunities", url: "/opportunities", badge: "Student" },
-      { id: "nav-dash", type: "page", title: "Student Dashboard", subtitle: "Personal opportunity intelligence cockpit", url: "/dashboard/student", badge: "Student" },
+      { id: "nav-opps", type: "page", title: "Explore Opportunities", subtitle: "Browse verified hackathons, internships & workshops", url: "/opportunities", badge: "Student" },
+      { id: "nav-dash", type: "page", title: "Student Dashboard", subtitle: "Personal opportunity cockpit & deadlines", url: "/dashboard/student", badge: "Student" },
+      { id: "nav-cal", type: "page", title: "Deadline Radar & Calendar", subtitle: "Upcoming deadlines and event schedule", url: "/dashboard/student/calendar", badge: "Student" },
+      { id: "nav-saved", type: "page", title: "Saved Opportunities", subtitle: "View your bookmarked opportunities pipeline", url: "/dashboard/student/saved", badge: "Student" },
+      { id: "nav-reg", type: "page", title: "My Registrations", subtitle: "Track applied hackathons, drives & workshops", url: "/dashboard/student/registrations", badge: "Student" },
+      { id: "nav-clubs", type: "page", title: "Verified SRM Clubs & Orgs", subtitle: "Official SRM campus organization directory", url: "/clubs", badge: "Public" },
       { id: "nav-feed", type: "page", title: "Campus Showcase Feed", subtitle: "Explore student achievements, won hackathons and certs", url: "/dashboard/student/feed", badge: "Student" },
-      { id: "nav-resume", type: "page", title: "AI Resume Lab", subtitle: "Upload resume for ATS screening and portfolio building", url: "/dashboard/student/resume", badge: "Student" },
-      { id: "nav-workspace", type: "page", title: "Personal AI Workspace", subtitle: "Notes, goals and generative roadmaps space", url: "/dashboard/student/workspace", badge: "Student" },
-      { id: "nav-agents", type: "page", title: "AI Agent Center", subtitle: "Chat with career, interview and resume co-pilot agents", url: "/dashboard/student/agents", badge: "Student" },
-      { id: "nav-opportunity-intelligence", type: "page", title: "Opportunity Terminal Center", subtitle: "Bloomberg-style opportunity stream and deadline analytics", url: "/dashboard/student/opportunity-intelligence", badge: "Student" },
-      { id: "nav-operating-system", type: "page", title: "Student Operating System (SOS)", subtitle: "Timeline journey, milestone tracking, goal engine and journal logs", url: "/dashboard/student/operating-system", badge: "Student" },
-      { id: "nav-war-room", type: "page", title: "AI Placement War Room", subtitle: "Recruiter prep tracker, mock interview simulator and weakness detector", url: "/dashboard/student/war-room", badge: "Student" },
-      { id: "nav-autopilot", type: "page", title: "AI Opportunity Autopilot", subtitle: "Personalized match percentages, selection probabilities and risk flags", url: "/dashboard/student/autopilot", badge: "Student" },
-      { id: "nav-mentors", type: "page", title: "AI Mentor Network & Expert Twins", subtitle: "Connect with alumni, chat with virtual twins, and queue career queries", url: "/dashboard/student/mentors", badge: "Student" },
-      { id: "nav-career-hq", type: "page", title: "Career HQ Central Command", subtitle: "Career health scores, visual operating calendars, and AI decision centers", url: "/dashboard/student/career-hq", badge: "Student" },
-      { id: "nav-saved", type: "page", title: "Saved Opportunities", subtitle: "View your bookmarked opportunities", url: "/dashboard/student/saved", badge: "Student" },
-      { id: "nav-reg", type: "page", title: "My Registrations", subtitle: "Track applied hackathons & events", url: "/dashboard/student/registrations", badge: "Student" },
-      { id: "nav-clubs", type: "page", title: "Verified SRM Clubs", subtitle: "Official SRM campus organization directory", url: "/clubs", badge: "Public" },
-      { id: "nav-notifs", type: "page", title: "Notifications & Activity Center", subtitle: "Real-time alerts, deadline reminders, registrations & club dispatches", url: "/dashboard/student/notifications", badge: "Activity" },
-      { id: "nav-[cal]", type: "page", title: "Student Calendar", subtitle: "Deadline timeline view", url: "/dashboard/student/calendar", badge: "Student" },
-      { id: "nav-prof", type: "page", title: "Student Profile & Vector Settings", subtitle: "Manage skills & preferences", url: "/dashboard/student/profile", badge: "Settings" }
+      { id: "nav-notifs", type: "page", title: "Notifications & Activity Center", subtitle: "Real-time alerts, deadline reminders & announcements", url: "/dashboard/student/notifications", badge: "Activity" },
+      { id: "nav-prof", type: "page", title: "Student Profile & Skill Radar", subtitle: "Manage skills, departments & preferences", url: "/dashboard/student/profile", badge: "Settings" }
     );
   }
 
@@ -93,7 +84,8 @@ export async function searchCommandPaletteAction(
       { id: "nav-club-dash", type: "page", title: "Club Command Center", subtitle: "Organization publishing workspace", url: "/dashboard/club", badge: "Club Rep" },
       { id: "nav-club-new", type: "action", title: "Create Opportunity", subtitle: "Publish a new event, hackathon, or recruitment drive", url: "/dashboard/club/opportunities/new", badge: "Action" },
       { id: "nav-club-ver", type: "page", title: "Club Verification Status", subtitle: "Review official SRM verification state", url: "/dashboard/club/verification", badge: "Club Rep" },
-      { id: "nav-clubs-dir", type: "page", title: "Public Clubs Directory", subtitle: "Browse campus organizations", url: "/clubs", badge: "Public" }
+      { id: "nav-clubs-dir", type: "page", title: "Public Clubs Directory", subtitle: "Browse campus organizations", url: "/clubs", badge: "Public" },
+      { id: "nav-opps", type: "page", title: "Explore Opportunities", subtitle: "Browse all campus listings", url: "/opportunities", badge: "Public" }
     );
   }
 
@@ -108,24 +100,16 @@ export async function searchCommandPaletteAction(
 
   // 2. Quick Actions (Always searchable)
   items.push(
-    { id: "act-create-opp", type: "action", title: "Create Opportunity", subtitle: "Publish a new job, internship or project", url: "/dashboard/club/opportunities/new", badge: "Action" },
-    { id: "act-create-event", type: "action", title: "Create Event", subtitle: "Publish a new hackathon, workshop or webinar", url: "/dashboard/club/opportunities/new?type=event", badge: "Action" },
+    { id: "act-explore-hackathons", type: "action", title: "Explore Hackathons", subtitle: "Browse verified campus coding hackathons", url: "/opportunities?type=hackathon", badge: "Discovery" },
+    { id: "act-explore-internships", type: "action", title: "Explore Internships", subtitle: "Technical internships and campus hiring drives", url: "/opportunities?type=internship", badge: "Discovery" },
+    { id: "act-explore-research", type: "action", title: "Explore Research Grants", subtitle: "Faculty-led projects and lab fellowships", url: "/opportunities?type=research", badge: "Discovery" },
+    { id: "act-explore-workshops", type: "action", title: "Explore Workshops", subtitle: "Hands-on tech bootcamps & masterclasses", url: "/opportunities?type=workshop", badge: "Discovery" },
+    { id: "act-explore-scholarships", type: "action", title: "Explore Scholarships", subtitle: "Merit endowments and tuition fee waivers", url: "/opportunities?type=scholarship", badge: "Discovery" },
     { id: "act-view-saved", type: "action", title: "View Saved Opportunities", subtitle: "Go to your bookmarked pipeline", url: "/dashboard/student/saved", badge: "Action" },
-    { id: "act-open-dash", type: "action", title: "Open Dashboard", subtitle: "Go to your personal command center", url: role === "super_admin" ? "/dashboard/admin" : role === "club_rep" ? "/dashboard/club" : "/dashboard/student", badge: "Action" },
-    { id: "act-open-workspace", type: "action", title: "Open AI Workspace", subtitle: "Go to your personal AI note, goal and roadmap space", url: "/dashboard/student/workspace", badge: "Action" },
-    { id: "act-open-agents", type: "action", title: "Open AI Agents Center", subtitle: "Consult with specialized AI agent co-pilots", url: "/dashboard/student/agents", badge: "Action" },
-    { id: "act-open-opportunity-intelligence", type: "action", title: "Open Opportunity Terminal", subtitle: "Bloomberg-style live opportunities feed and category growth index", url: "/dashboard/student/opportunity-intelligence", badge: "Action" },
-    { id: "act-open-operating-system", type: "action", title: "Open Student OS Cockpit", subtitle: "Notion/Linear style timeline, goal tracker and career journal", url: "/dashboard/student/operating-system", badge: "Action" },
-    { id: "act-open-war-room", type: "action", title: "Open Placement War Room", subtitle: "Evaluate offer probabilities, mock sessions and recruiter prep", url: "/dashboard/student/war-room", badge: "Action" },
-    { id: "act-open-autopilot", type: "action", title: "Open Opportunity Autopilot", subtitle: "Personalized matching profiles, probability indices and risk warnings", url: "/dashboard/student/autopilot", badge: "Action" },
-    { id: "act-open-mentors", type: "action", title: "Open Mentor Hub", subtitle: "Bridge career with alumni profiles and expert twin systems", url: "/dashboard/student/mentors", badge: "Action" },
-    { id: "act-open-career-hq", type: "action", title: "Open Career HQ", subtitle: "Consolidate health indices, operating calendars and AI decisions", url: "/dashboard/student/career-hq", badge: "Action" },
-    { id: "act-open-feed", type: "action", title: "Open Campus Feed", subtitle: "Browse peer showcases and share achievements", url: "/dashboard/student/feed", badge: "Action" },
-    { id: "act-open-resume", type: "action", title: "Open Resume Lab", subtitle: "Analyze resume and customize showcase portfolio", url: "/dashboard/student/resume", badge: "Action" },
-    { id: "act-open-analytics", type: "action", title: "Open Analytics", subtitle: "View engagement and application statistics", url: role === "club_rep" ? "/dashboard/club/analytics" : "/dashboard/student/analytics", badge: "Action" },
-    { id: "act-open-copilot", type: "action", title: "Open Career Copilot", subtitle: "View AI personalized recommendations and insights", url: "/dashboard/student/workspace", badge: "Action" },
-    { id: "act-open-profile", type: "action", title: "Open Profile", subtitle: "View and edit your public developer portfolio", url: "/dashboard/student/profile", badge: "Action" },
-    { id: "act-open-settings", type: "action", title: "Open Settings", subtitle: "Configure account preferences and skill taxonomy", url: "/dashboard/student/profile", badge: "Action" }
+    { id: "act-view-registrations", type: "action", title: "View My Registrations", subtitle: "Track applied events and hackathons", url: "/dashboard/student/registrations", badge: "Action" },
+    { id: "act-open-dash", type: "action", title: "Open Dashboard", subtitle: "Go to your personal cockpit", url: role === "super_admin" ? "/dashboard/admin" : role === "club_rep" ? "/dashboard/club" : "/dashboard/student", badge: "Action" },
+    { id: "act-open-calendar", type: "action", title: "Open Deadline Radar", subtitle: "View calendar of application closing dates", url: "/dashboard/student/calendar", badge: "Action" },
+    { id: "act-open-profile", type: "action", title: "Open Profile & Skill Radar", subtitle: "Update skills, year and department", url: "/dashboard/student/profile", badge: "Action" }
   );
 
   // 3. Dynamic Smart Search items based on query prefix

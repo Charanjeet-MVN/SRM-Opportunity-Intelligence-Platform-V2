@@ -5,12 +5,9 @@ import { motion } from "framer-motion";
 import { PublicClubRecord } from "@/lib/clubs/actions";
 import {
   Target,
-  Sparkles,
   Zap,
   Users2,
   Rocket,
-  ShieldCheck,
-  Award,
 } from "lucide-react";
 
 interface ClubStoryAndVisionProps {

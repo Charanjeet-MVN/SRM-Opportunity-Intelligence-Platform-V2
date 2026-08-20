@@ -7,17 +7,14 @@ import { StudentProfile } from "@/types";
 import { DEPARTMENTS } from "@/lib/constants";
 import {
   User,
-  GraduationCap,
   IdCard,
   Code,
   Target,
-  Sparkles,
   ArrowRight,
   ArrowLeft,
   CheckCircle2,
   AlertCircle,
   Plus,
-  X,
   Compass,
   Trophy,
   Briefcase,

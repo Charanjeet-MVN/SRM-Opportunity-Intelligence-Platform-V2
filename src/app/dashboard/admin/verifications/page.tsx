@@ -4,7 +4,7 @@ import React, { useActionState, useEffect, useState } from "react";
 import { getPendingVerificationsAction, reviewVerificationAction, ClubFormState } from "@/lib/clubs/actions";
 import VerificationBadge from "@/components/clubs/VerificationBadge";
 import { ClubVerificationRequest } from "@/types";
-import { ShieldCheck, ExternalLink, CheckCircle2, XCircle, AlertCircle, FileText } from "lucide-react";
+import { ShieldCheck, ExternalLink, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 
 type ExtendedRequest = ClubVerificationRequest & { clubName: string; officialEmail: string };
 

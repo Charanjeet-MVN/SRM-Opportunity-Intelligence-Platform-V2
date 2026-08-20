@@ -2,7 +2,7 @@
 
 import React from "react";
 import { parseSearchQueryAI } from "@/lib/ai/recommendations";
-import { Search, Sparkles, X, Filter, Zap } from "lucide-react";
+import { Search, Sparkles, X } from "lucide-react";
 
 interface NaturalLanguageSearchBarProps {
   value: string;

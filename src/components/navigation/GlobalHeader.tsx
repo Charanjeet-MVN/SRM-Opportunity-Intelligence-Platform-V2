@@ -19,10 +19,8 @@ import {
   ShieldCheck,
   Plus,
   ChevronDown,
-  Sparkles,
   BarChart3,
   Award,
-  FileText,
   Layout,
   Bell,
 } from "lucide-react";
@@ -83,25 +81,21 @@ export default function GlobalHeader({
                     <Layout className="w-3.5 h-3.5 text-amber-400" />
                     <span>Cockpit</span>
                   </NavLink>
-                  <NavLink href="/dashboard/student/feed" active={pathname === "/dashboard/student/feed"}>
-                    <Award className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Showcase</span>
-                  </NavLink>
                   <NavLink href="/dashboard/student/calendar" active={pathname === "/dashboard/student/calendar"}>
                     <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Radar</span>
+                    <span>Deadline Radar</span>
                   </NavLink>
                   <NavLink href="/dashboard/student/saved" active={pathname.includes("/saved")}>
                     <Bookmark className="w-3.5 h-3.5 text-zinc-400" />
                     <span>Saved</span>
                   </NavLink>
-                  <NavLink href="/dashboard/student/resume" active={pathname === "/dashboard/student/resume"}>
-                    <FileText className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Resume Lab</span>
+                  <NavLink href="/dashboard/student/registrations" active={pathname.includes("/registrations")}>
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                    <span>Registrations</span>
                   </NavLink>
-                  <NavLink href="/dashboard/student/workspace" active={pathname === "/dashboard/student/workspace"}>
-                    <Sparkles className="w-3.5 h-3.5 text-purple-400" />
-                    <span>AI Workspace</span>
+                  <NavLink href="/dashboard/student/feed" active={pathname === "/dashboard/student/feed"}>
+                    <Award className="w-3.5 h-3.5 text-indigo-400" />
+                    <span>Showcase</span>
                   </NavLink>
                 </>
               )}

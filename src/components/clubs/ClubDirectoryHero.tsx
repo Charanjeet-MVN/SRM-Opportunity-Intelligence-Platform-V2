@@ -6,9 +6,7 @@ import {
   Building2,
   ShieldCheck,
   Layers,
-  Sparkles,
   Search,
-  Users,
 } from "lucide-react";
 
 interface ClubDirectoryHeroProps {

@@ -2,7 +2,7 @@ import React from "react";
 import Link from "next/link";
 import { getPublicClubsAction } from "@/lib/clubs/actions";
 import ClubDirectoryClient from "@/components/clubs/ClubDirectoryClient";
-import { ArrowLeft, Compass } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 interface ClubsPageProps {
   searchParams: Promise<{ search?: string; category?: string }>;
