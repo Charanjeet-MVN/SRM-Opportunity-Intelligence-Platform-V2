@@ -10,7 +10,17 @@ export interface ClubAnalyticsOverview {
   expiredCount: number;
   totalSavedBookmarks: number;
   totalApplicationsRecorded: number;
+  totalAttendedCount: number;
+  statusBreakdown: {
+    confirmed: number;
+    pending: number;
+    attended: number;
+    waitlisted: number;
+    cancelled: number;
+  };
+  overallConversionRate: number;
   departmentDistribution: { department: string; count: number }[];
+  yearDistribution: { year: number; count: number }[];
   skillDemandDistribution: { skill: string; count: number }[];
   opportunityPerformance: {
     id: string;
@@ -21,8 +31,12 @@ export interface ClubAnalyticsOverview {
     savedCount: number;
     registeredCount: number;
     completedCount: number;
+    maxParticipants?: number;
+    currentParticipants?: number;
+    conversionRate: number;
     createdAt: string;
     deadline?: string;
+    eventStartDate?: string;
   }[];
   savedTimeline: { date: string; opportunityTitle: string }[];
   registrationTimeline: { date: string; opportunityTitle: string; status: string }[];
@@ -72,7 +86,7 @@ export async function getClubAnalyticsAction(): Promise<{
   // Fetch all opportunities created by this club
   const { data: opportunities, error: oppsError } = await supabase
     .from("opportunities")
-    .select("id, title, slug, type, status, required_skills, eligible_departments, created_at, application_deadline")
+    .select("id, title, slug, type, status, required_skills, eligible_departments, max_participants, current_participants, event_start_date, created_at, application_deadline")
     .eq("club_id", clubId);
 
   if (oppsError) return { analytics: null, error: oppsError.message };
@@ -101,15 +115,17 @@ export async function getClubAnalyticsAction(): Promise<{
   let totalSavedBookmarks = 0;
   const oppSavedMap: Record<string, number> = {};
   const savedTimeline: { date: string; opportunityTitle: string }[] = [];
+  const savedUserIds = new Set<string>();
 
   if (oppIds.length > 0) {
     const { data: savedData } = await supabase
       .from("saved_opportunities")
-      .select("opportunity_id, created_at")
+      .select("opportunity_id, user_id, created_at")
       .in("opportunity_id", oppIds);
 
     (savedData || []).forEach((s) => {
       totalSavedBookmarks++;
+      if (s.user_id) savedUserIds.add(s.user_id);
       oppSavedMap[s.opportunity_id] = (oppSavedMap[s.opportunity_id] || 0) + 1;
       savedTimeline.push({
         date: s.created_at,
@@ -119,22 +135,40 @@ export async function getClubAnalyticsAction(): Promise<{
   }
 
   let totalApplicationsRecorded = 0;
+  let totalAttendedCount = 0;
+  const statusBreakdown = {
+    confirmed: 0,
+    pending: 0,
+    attended: 0,
+    waitlisted: 0,
+    cancelled: 0,
+  };
   const oppRegMap: Record<string, number> = {};
   const oppCompletedMap: Record<string, number> = {};
   const registrationTimeline: { date: string; opportunityTitle: string; status: string }[] = [];
+  const registeredUserIds = new Set<string>();
 
   if (oppIds.length > 0) {
     const { data: regData } = await supabase
       .from("registrations")
-      .select("opportunity_id, status, registered_at")
+      .select("opportunity_id, user_id, status, registered_at")
       .in("opportunity_id", oppIds);
 
     (regData || []).forEach((r) => {
       totalApplicationsRecorded++;
+      if (r.user_id) registeredUserIds.add(r.user_id);
       oppRegMap[r.opportunity_id] = (oppRegMap[r.opportunity_id] || 0) + 1;
-      if (r.status === "attended") {
+
+      const normalizedStatus = (r.status || "pending").toLowerCase();
+      if (normalizedStatus === "confirmed") statusBreakdown.confirmed++;
+      else if (normalizedStatus === "attended") {
+        statusBreakdown.attended++;
+        totalAttendedCount++;
         oppCompletedMap[r.opportunity_id] = (oppCompletedMap[r.opportunity_id] || 0) + 1;
-      }
+      } else if (normalizedStatus === "waitlisted") statusBreakdown.waitlisted++;
+      else if (normalizedStatus === "cancelled") statusBreakdown.cancelled++;
+      else statusBreakdown.pending++;
+
       registrationTimeline.push({
         date: r.registered_at,
         opportunityTitle: oppTitleMap.get(r.opportunity_id) || "Unknown",
@@ -147,21 +181,48 @@ export async function getClubAnalyticsAction(): Promise<{
   savedTimeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   registrationTimeline.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
-  // Department distribution
+  // Aggregate user profiles for real audience demographics
+  const allAudienceUserIds = Array.from(new Set([...Array.from(savedUserIds), ...Array.from(registeredUserIds)]));
   const deptCountMap: Record<string, number> = {};
-  oppList.forEach((opp) => {
-    const depts = opp.eligible_departments || ["All Departments"];
-    depts.forEach((d: string) => {
-      deptCountMap[d] = (deptCountMap[d] || 0) + 1;
+  const yearCountMap: Record<number, number> = {};
+
+  if (allAudienceUserIds.length > 0) {
+    const { data: audienceProfiles } = await supabase
+      .from("student_profiles")
+      .select("department, year_of_study")
+      .in("user_id", allAudienceUserIds);
+
+    (audienceProfiles || []).forEach((p) => {
+      if (p.department) {
+        deptCountMap[p.department] = (deptCountMap[p.department] || 0) + 1;
+      }
+      if (p.year_of_study) {
+        yearCountMap[p.year_of_study] = (yearCountMap[p.year_of_study] || 0) + 1;
+      }
     });
-  });
+  }
+
+  // Fallback to eligible_departments from opportunities if no user profiles exist yet
+  if (Object.keys(deptCountMap).length === 0) {
+    oppList.forEach((opp) => {
+      const depts = opp.eligible_departments || ["All Departments"];
+      depts.forEach((d: string) => {
+        deptCountMap[d] = (deptCountMap[d] || 0) + 1;
+      });
+    });
+  }
 
   const departmentDistribution = Object.entries(deptCountMap).map(([department, count]) => ({
     department,
     count,
   }));
 
-  // Skill demand distribution
+  const yearDistribution = Object.entries(yearCountMap).map(([year, count]) => ({
+    year: parseInt(year, 10),
+    count,
+  }));
+
+  // Skill demand distribution from real opportunities
   const skillCountMap: Record<string, number> = {};
   oppList.forEach((opp) => {
     const skills = opp.required_skills || [];
@@ -175,18 +236,34 @@ export async function getClubAnalyticsAction(): Promise<{
     .sort((a, b) => b.count - a.count)
     .slice(0, 10);
 
-  const opportunityPerformance = oppList.map((opp) => ({
-    id: opp.id,
-    title: opp.title,
-    slug: opp.slug,
-    type: opp.type,
-    status: opp.status,
-    savedCount: oppSavedMap[opp.id] || 0,
-    registeredCount: oppRegMap[opp.id] || 0,
-    completedCount: oppCompletedMap[opp.id] || 0,
-    createdAt: opp.created_at,
-    deadline: opp.application_deadline || undefined,
-  }));
+  const overallConversionRate =
+    totalSavedBookmarks > 0
+      ? Math.round((totalApplicationsRecorded / totalSavedBookmarks) * 100)
+      : 0;
+
+  const opportunityPerformance = oppList.map((opp) => {
+    const saved = oppSavedMap[opp.id] || 0;
+    const reg = oppRegMap[opp.id] || 0;
+    const completed = oppCompletedMap[opp.id] || 0;
+    const conv = saved > 0 ? Math.round((reg / saved) * 100) : 0;
+
+    return {
+      id: opp.id,
+      title: opp.title,
+      slug: opp.slug,
+      type: opp.type,
+      status: opp.status,
+      savedCount: saved,
+      registeredCount: reg,
+      completedCount: completed,
+      maxParticipants: opp.max_participants || undefined,
+      currentParticipants: opp.current_participants || reg,
+      conversionRate: conv,
+      createdAt: opp.created_at,
+      deadline: opp.application_deadline || undefined,
+      eventStartDate: opp.event_start_date || undefined,
+    };
+  });
 
   return {
     analytics: {
@@ -196,7 +273,11 @@ export async function getClubAnalyticsAction(): Promise<{
       expiredCount,
       totalSavedBookmarks,
       totalApplicationsRecorded,
+      totalAttendedCount,
+      statusBreakdown,
+      overallConversionRate,
       departmentDistribution,
+      yearDistribution,
       skillDemandDistribution,
       opportunityPerformance,
       savedTimeline,
