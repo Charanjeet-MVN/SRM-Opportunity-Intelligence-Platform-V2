@@ -67,6 +67,9 @@ export default function SpatialCard3D({
   const handleMouseMove = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       if (shouldReduceMotion || !cardRef.current) return;
+      if (typeof window !== "undefined" && window.matchMedia && !window.matchMedia("(hover: hover)").matches) {
+        return;
+      }
       const rect = cardRef.current.getBoundingClientRect();
       const width = rect.width;
       const height = rect.height;

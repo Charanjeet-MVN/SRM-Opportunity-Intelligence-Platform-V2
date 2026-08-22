@@ -3,8 +3,9 @@
 import React from "react";
 import { motion } from "framer-motion";
 import { LucideIcon, Sparkles } from "lucide-react";
+import Button from "./Button";
 
-interface EmptyStateProps {
+export interface EmptyStateProps {
   icon?: LucideIcon;
   title: string;
   description: string;
@@ -15,7 +16,7 @@ interface EmptyStateProps {
   className?: string;
 }
 
-export default function EmptyState({
+export function EmptyState({
   icon: Icon = Sparkles,
   title,
   description,
@@ -27,22 +28,22 @@ export default function EmptyState({
 }: EmptyStateProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-      className={`py-16 px-6 rounded-3xl bg-zinc-950/80 border border-zinc-800/80 text-center space-y-4 max-w-md mx-auto backdrop-blur-2xl shadow-xl relative overflow-hidden ${className}`}
+      transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+      className={`py-14 px-6 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 text-center space-y-4 max-w-md mx-auto backdrop-blur-xl shadow-xl relative overflow-hidden ${className}`}
     >
-      {/* Soft Ambient Radial Backdrop */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-48 h-48 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+      {/* Subtle Ambient Radial Light */}
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-violet-600/5 rounded-full blur-3xl pointer-events-none" />
 
-      <div className="relative z-10 space-y-4 font-mono">
-        <div className="mx-auto w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-purple-400 shadow-inner">
-          <Icon className="w-5 h-5 text-purple-400" />
+      <div className="relative z-10 space-y-4">
+        <div className="mx-auto w-11 h-11 rounded-xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-violet-400 shadow-inner">
+          <Icon className="w-5 h-5" />
         </div>
 
-        <div className="space-y-1">
-          <h3 className="text-sm font-bold text-zinc-100 font-sans">{title}</h3>
-          <p className="text-xs text-zinc-400 font-light leading-relaxed max-w-xs mx-auto">
+        <div className="space-y-1.5">
+          <h3 className="text-sm font-semibold text-zinc-100 font-sans">{title}</h3>
+          <p className="text-xs text-zinc-400 font-sans leading-relaxed max-w-xs mx-auto">
             {description}
           </p>
         </div>
@@ -50,20 +51,22 @@ export default function EmptyState({
         {(actionText || secondaryActionText) && (
           <div className="flex items-center justify-center gap-2 pt-2 flex-wrap">
             {secondaryActionText && onSecondaryActionClick && (
-              <button
+              <Button
+                variant="secondary"
+                size="sm"
                 onClick={onSecondaryActionClick}
-                className="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-xs font-mono text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
               >
                 {secondaryActionText}
-              </button>
+              </Button>
             )}
             {actionText && onActionClick && (
-              <button
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={onActionClick}
-                className="px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-bold shadow-md shadow-purple-600/25 transition-all cursor-pointer"
               >
                 {actionText}
-              </button>
+              </Button>
             )}
           </div>
         )}
@@ -71,3 +74,5 @@ export default function EmptyState({
     </motion.div>
   );
 }
+
+export default EmptyState;
