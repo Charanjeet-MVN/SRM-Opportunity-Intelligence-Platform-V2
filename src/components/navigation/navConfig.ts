@@ -11,7 +11,6 @@ import {
   BarChart3,
   Bell,
   User,
-  Settings,
   ShieldCheck,
   CheckSquare,
   Plus,

@@ -2,7 +2,7 @@ import React from "react";
 import { createClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import { getNotificationsAction } from "@/lib/notifications/actions";
-import GlobalHeader from "@/components/navigation/GlobalHeader";
+import AppShell from "@/components/navigation/AppShell";
 import { UserRole } from "@/types";
 
 export default async function DashboardLayout({
@@ -41,25 +41,14 @@ export default async function DashboardLayout({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-zinc-100 flex flex-col">
-      {/* Global Command Header & Navigation */}
-      <GlobalHeader
-        userRole={role}
-        userName={fullName}
-        userEmail={user.email}
-        notifications={notifications}
-        unreadCount={unreadCount}
-      />
-
-      {/* Main Workspace Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {children}
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-zinc-800/60 py-6 text-center text-xs text-zinc-500 font-mono">
-        SRM Opportunity Intelligence Platform — V2 Workspace
-      </footer>
-    </div>
+    <AppShell
+      userRole={role}
+      userName={fullName}
+      userEmail={user.email}
+      notifications={notifications}
+      unreadCount={unreadCount}
+    >
+      {children}
+    </AppShell>
   );
 }

@@ -169,7 +169,10 @@ export default function MobileSidebar({
                   <div className="text-xs font-semibold text-zinc-200 truncate">
                     {userName || "Account"}
                   </div>
-                  <div className={`inline-flex items-center mt-0.5 px-1.5 py-0 rounded text-[9px] font-bold uppercase tracking-wider border ${meta.color}`}>
+                  {userEmail && (
+                    <div className="text-[10px] text-zinc-500 truncate">{userEmail}</div>
+                  )}
+                  <div className={`inline-flex items-center mt-1 px-1.5 py-0 rounded text-[9px] font-bold uppercase tracking-wider border ${meta.color}`}>
                     {meta.label}
                   </div>
                 </div>

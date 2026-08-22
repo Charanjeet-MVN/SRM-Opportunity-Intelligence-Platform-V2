@@ -2,27 +2,17 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { UserRole, Notification } from "@/types";
 import GlobalCommandPalette from "./GlobalCommandPalette";
 import NotificationBellPopover from "@/components/notifications/NotificationBellPopover";
 import { signOutAction } from "@/lib/auth/actions";
 import {
   Search,
-  Compass,
-  Bookmark,
-  Calendar,
   User,
   LogOut,
-  CheckCircle2,
-  Building2,
-  ShieldCheck,
-  Plus,
   ChevronDown,
-  BarChart3,
-  Award,
-  Layout,
   Bell,
+  Calendar,
 } from "lucide-react";
 
 interface GlobalHeaderProps {
@@ -40,13 +30,10 @@ export default function GlobalHeader({
   notifications = [],
   unreadCount = 0,
 }: GlobalHeaderProps) {
-  const pathname = usePathname();
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
   const [profileMenuOpen, setProfileMenuOpen] = useState(false);
 
   const isStudent = userRole === "student";
-  const isClubRep = userRole === "club_rep";
-  const isSuperAdmin = userRole === "super_admin";
 
   return (
     <>
@@ -62,74 +49,6 @@ export default function GlobalHeader({
                 SRM Intelligence
               </span>
             </Link>
-
-            {/* Navigation Tabs */}
-            <nav className="hidden lg:flex items-center gap-1 overflow-x-auto scrollbar-none py-1">
-              <NavLink href="/opportunities" active={pathname === "/opportunities"}>
-                <Compass className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Explore</span>
-              </NavLink>
-
-              <NavLink href="/clubs" active={pathname.startsWith("/clubs")}>
-                <Building2 className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Organizations</span>
-              </NavLink>
-
-              {isStudent && (
-                <>
-                  <NavLink href="/dashboard/student" active={pathname === "/dashboard/student"}>
-                    <Layout className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Cockpit</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/calendar" active={pathname === "/dashboard/student/calendar"}>
-                    <Calendar className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Deadline Radar</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/saved" active={pathname.includes("/saved")}>
-                    <Bookmark className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Saved</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/registrations" active={pathname.includes("/registrations")}>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Registrations</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/student/feed" active={pathname === "/dashboard/student/feed"}>
-                    <Award className="w-3.5 h-3.5 text-indigo-400" />
-                    <span>Showcase</span>
-                  </NavLink>
-                </>
-              )}
-
-              {isClubRep && (
-                <>
-                  <NavLink href="/dashboard/club" active={pathname === "/dashboard/club"}>
-                    <Building2 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Club Command</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/club/opportunities/new" active={pathname.includes("/new")}>
-                    <Plus className="w-3.5 h-3.5 text-emerald-400" />
-                    <span>Publish Opp</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/club/analytics" active={pathname === "/dashboard/club/analytics"}>
-                    <BarChart3 className="w-3.5 h-3.5 text-purple-400" />
-                    <span>Analytics</span>
-                  </NavLink>
-                </>
-              )}
-
-              {isSuperAdmin && (
-                <>
-                  <NavLink href="/dashboard/admin" active={pathname === "/dashboard/admin"}>
-                    <ShieldCheck className="w-3.5 h-3.5 text-red-400" />
-                    <span>Trust Control</span>
-                  </NavLink>
-                  <NavLink href="/dashboard/admin/verifications" active={pathname.includes("/verifications")}>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-amber-400" />
-                    <span>Verifications</span>
-                  </NavLink>
-                </>
-              )}
-            </nav>
           </div>
 
           {/* Center/Right: Command Palette Trigger Button */}
@@ -262,20 +181,5 @@ export default function GlobalHeader({
         userRole={userRole}
       />
     </>
-  );
-}
-
-function NavLink({ href, active, children }: { href: string; active?: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-medium rounded-xl transition-all ${
-        active
-          ? "bg-zinc-900 text-zinc-100 border border-zinc-800 shadow-sm"
-          : "text-zinc-400 hover:text-zinc-200 hover:bg-zinc-900/50"
-      }`}
-    >
-      {children}
-    </Link>
   );
 }
