@@ -28,58 +28,58 @@ export default function OpportunitySnapshotGrid({
   const cards = [
     {
       id: "available",
-      label: "Available Opportunities",
-      value: totalAvailable > 0 ? totalAvailable : "Live",
-      subtitle: "Verified SRM Listings",
+      label: "Relevant Opportunities",
+      value: totalAvailable,
+      subtitle: totalAvailable > 0 ? "Matched to your profile" : "Explore open listings",
       icon: Compass,
       href: "/opportunities",
       accent: "text-indigo-400",
       glowColor: "rgba(99, 102, 241, 0.18)",
       border: "hover:border-indigo-500/50",
-      badge: "Active",
+      badge: totalAvailable > 0 ? "Active Feed" : "Explore",
       badgeColor: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20",
     },
     {
       id: "saved",
-      label: "Saved Opportunities",
+      label: "Saved on Radar",
       value: totalSaved,
-      subtitle: "Bookmarked for Review",
+      subtitle: totalSaved > 0 ? "Tracked for submission" : "No saved items yet",
       icon: Bookmark,
       href: "/dashboard/student/saved",
       accent: "text-purple-400",
       glowColor: "rgba(168, 85, 247, 0.18)",
       border: "hover:border-purple-500/50",
-      badge: `${totalSaved} Tracked`,
+      badge: `${totalSaved} Saved`,
       badgeColor: "bg-purple-500/10 text-purple-300 border-purple-500/20",
-    },
-    {
-      id: "registered",
-      label: "Active Registrations",
-      value: totalRegistered,
-      subtitle: "Submissions & Entries",
-      icon: Calendar,
-      href: "/dashboard/student/registrations",
-      accent: "text-emerald-400",
-      glowColor: "rgba(16, 185, 129, 0.18)",
-      border: "hover:border-emerald-500/50",
-      badge: "Verified",
-      badgeColor: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
     },
     {
       id: "deadlines",
       label: "Deadlines This Week",
       value: deadlinesThisWeek,
-      subtitle: deadlinesThisWeek > 0 ? "Requires Action" : "On Track",
+      subtitle: deadlinesThisWeek > 0 ? "Requires action" : "All caught up",
       icon: Clock,
       href: "/dashboard/student/calendar",
       accent: deadlinesThisWeek > 0 ? "text-amber-400" : "text-sky-400",
       glowColor: deadlinesThisWeek > 0 ? "rgba(245, 158, 11, 0.18)" : "rgba(56, 189, 248, 0.18)",
       border: deadlinesThisWeek > 0 ? "hover:border-amber-500/50" : "hover:border-sky-500/50",
-      badge: deadlinesThisWeek > 0 ? "Urgent" : "Calm",
+      badge: deadlinesThisWeek > 0 ? "Urgent Action" : "On Track",
       badgeColor:
         deadlinesThisWeek > 0
           ? "bg-amber-500/15 text-amber-300 border-amber-500/30 animate-pulse"
           : "bg-sky-500/10 text-sky-300 border-sky-500/20",
+    },
+    {
+      id: "registered",
+      label: "Active Applications",
+      value: totalRegistered,
+      subtitle: totalRegistered > 0 ? "Submissions & entries" : "No active submissions",
+      icon: Calendar,
+      href: "/dashboard/student/registrations",
+      accent: "text-emerald-400",
+      glowColor: "rgba(16, 185, 129, 0.18)",
+      border: "hover:border-emerald-500/50",
+      badge: totalRegistered > 0 ? "Registered" : "Available",
+      badgeColor: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
     },
   ];
 
@@ -92,7 +92,7 @@ export default function OpportunitySnapshotGrid({
           <Link key={card.id} href={card.href} className="block h-full">
             <SpatialCard3D
               depth={6}
-              elevationZ={15}
+              elevationZ={14}
               glowColor={card.glowColor}
               className="h-full"
             >
