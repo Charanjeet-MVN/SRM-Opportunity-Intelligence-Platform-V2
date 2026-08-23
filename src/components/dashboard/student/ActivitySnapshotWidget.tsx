@@ -8,8 +8,6 @@ import {
   Bookmark,
   CheckCircle2,
   ArrowRight,
-  Clock,
-  Sparkles,
 } from "lucide-react";
 
 interface ActivitySnapshotWidgetProps {

@@ -10,7 +10,6 @@ import {
   ArrowRight,
   Calendar,
   Flame,
-  AlertTriangle,
 } from "lucide-react";
 import { getDeadlineUrgency } from "@/lib/notifications/urgency";
 
