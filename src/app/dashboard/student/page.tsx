@@ -1,16 +1,26 @@
 import React from "react";
 import { createClient } from "@/lib/supabase/server";
-import { getPersonalizedFeedAction } from "@/lib/opportunities/actions";
-import { getSavedOpportunitiesAction, getRegisteredOpportunitiesAction } from "@/lib/engagement/actions";
+import {
+  getPersonalizedFeedAction,
+  getPublicOpportunitiesAction,
+} from "@/lib/opportunities/actions";
+import {
+  getSavedOpportunitiesAction,
+  getRegisteredOpportunitiesAction,
+} from "@/lib/engagement/actions";
 import CommandCenterClient from "@/components/dashboard/CommandCenterClient";
-import { getAIRecommendedOpportunitiesAction } from "@/lib/ai/service";
 import { redirect } from "next/navigation";
-import { calculateProfileCompleteness, isStudentOnboardingCompleted } from "@/lib/students/actions";
+import {
+  calculateProfileCompleteness,
+  isStudentOnboardingCompleted,
+} from "@/lib/students/actions";
 import { StudentProfile } from "@/types";
 
 export default async function StudentDashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
   let studentProfile: StudentProfile | null = null;
 
@@ -45,17 +55,17 @@ export default async function StudentDashboardPage() {
 
   const completeness = await calculateProfileCompleteness(studentProfile);
 
-  // Fetch real data only — no fake content
+  // Fetch real data in parallel — zero fake content
   const [
     { opportunities },
     { savedOpportunities },
     { registeredOpportunities },
-    { recommendations: aiRecommendations },
+    { opportunities: recentOpportunities },
   ] = await Promise.all([
     getPersonalizedFeedAction({ limit: 6, sortBy: "relevance" }),
     getSavedOpportunitiesAction(),
     getRegisteredOpportunitiesAction(),
-    getAIRecommendedOpportunitiesAction(),
+    getPublicOpportunitiesAction({ limit: 4, sortBy: "newest" }),
   ]);
 
   return (
@@ -65,7 +75,7 @@ export default async function StudentDashboardPage() {
       opportunities={opportunities}
       savedOpportunities={savedOpportunities || []}
       registeredOpportunities={registeredOpportunities || []}
-      aiRecommendations={aiRecommendations || []}
+      recentOpportunities={recentOpportunities || []}
     />
   );
 }
