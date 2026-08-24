@@ -1,7 +1,7 @@
 "use client";
 
 import React from "react";
-import DiscoverySearchBar, { DiscoverySearchBarProps } from "./DiscoverySearchBar";
+import DiscoverySearchBar from "./DiscoverySearchBar";
 
 export interface NaturalLanguageSearchBarProps {
   value: string;

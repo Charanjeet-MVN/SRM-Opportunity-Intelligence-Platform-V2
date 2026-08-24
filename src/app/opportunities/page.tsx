@@ -21,7 +21,9 @@ export default function PublicOpportunitiesPage() {
     async function loadUser() {
       try {
         const supabase = createClient();
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           const { data: prof } = await supabase
             .from("student_profiles")
@@ -60,14 +62,13 @@ export default function PublicOpportunitiesPage() {
     try {
       const res = await getPublicOpportunitiesAction({ limit: 60 });
       if (res.error) {
-        setErrorState(res.error);
+        setErrorState("Unable to load opportunities. Please check your connection and retry.");
         setOpportunities([]);
       } else {
         setOpportunities(res.opportunities || []);
       }
-    } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : "Failed to load opportunities";
-      setErrorState(message);
+    } catch {
+      setErrorState("Unable to load opportunities. Please check your connection and retry.");
       setOpportunities([]);
     } finally {
       setLoading(false);
@@ -98,12 +99,21 @@ export default function PublicOpportunitiesPage() {
             </div>
           </div>
         ) : errorState ? (
-          <div className="p-8 rounded-3xl bg-red-500/10 border border-red-500/20 text-center max-w-lg mx-auto space-y-4 my-12 font-mono text-xs text-red-300">
-            <AlertCircle className="w-8 h-8 text-red-400 mx-auto" />
-            <p>{errorState}</p>
+          <div className="p-8 sm:p-10 rounded-3xl bg-zinc-950/80 border border-red-500/30 text-center max-w-lg mx-auto space-y-5 my-16 shadow-2xl backdrop-blur-xl">
+            <div className="w-14 h-14 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center justify-center mx-auto text-red-400">
+              <AlertCircle className="w-7 h-7" />
+            </div>
+            <div className="space-y-1.5">
+              <h3 className="text-lg font-bold text-zinc-100 font-sans">
+                Unable to load opportunities
+              </h3>
+              <p className="text-xs text-zinc-400 font-sans leading-relaxed">
+                We encountered an issue connecting to the campus directory. Please verify your internet connection and try again.
+              </p>
+            </div>
             <button
               onClick={fetchOpportunities}
-              className="px-4 py-2 rounded-xl bg-red-600/30 hover:bg-red-600/50 border border-red-500/40 text-red-200 transition-colors inline-flex items-center gap-2 cursor-pointer"
+              className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-mono text-xs font-bold transition-all shadow-lg shadow-indigo-600/30 inline-flex items-center gap-2 cursor-pointer active:scale-95"
             >
               <RefreshCw className="w-3.5 h-3.5" />
               <span>Retry Connection</span>
