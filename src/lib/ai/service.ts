@@ -11,6 +11,7 @@ export interface AIOpportunitySummary {
   keyRequirements: string[];
   importantDates: string;
   whyItMayMatter: string;
+  whatShouldDoNext: string;
 }
 
 export interface AIPersonalizedInsight {
@@ -82,16 +83,20 @@ export async function generateOpportunitySummaryAction(
         : ["No prerequisite skills explicitly required; open to beginners."];
 
     const deadlineText = opportunity.applicationDeadline
-      ? `Application deadline: ${new Date(opportunity.applicationDeadline).toLocaleDateString()}`
+      ? `Application deadline: ${new Date(opportunity.applicationDeadline).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
       : "Open application / flexible deadline";
 
     const startText = opportunity.eventStartDate
-      ? ` • Event starts: ${new Date(opportunity.eventStartDate).toLocaleDateString()}`
+      ? ` • Event starts: ${new Date(opportunity.eventStartDate).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}`
       : "";
 
     const importantDates = `${deadlineText}${startText}`;
 
     const whyItMayMatter = `Offers real-world hands-on experience in ${opportunity.type.replace("_", " ")} organized by ${opportunity.club?.name || "verified SRM organization"}.`;
+
+    const whatShouldDoNext = opportunity.applicationDeadline
+      ? `Review your resume and required skills (${opportunity.requiredSkills.slice(0, 3).join(", ") || "core fundamentals"}), then complete your registration before the ${new Date(opportunity.applicationDeadline).toLocaleDateString("en-US", { month: "short", day: "numeric" })} deadline.`
+      : "Review the required competencies and register early to secure your spot in the cohort.";
 
     const resultSummary: AIOpportunitySummary = {
       whatItIs,
@@ -99,6 +104,7 @@ export async function generateOpportunitySummaryAction(
       keyRequirements,
       importantDates,
       whyItMayMatter,
+      whatShouldDoNext,
     };
 
     summaryCache.set(opportunity.id, resultSummary);
