@@ -1,6 +1,6 @@
 import React from "react";
 import Link from "next/link";
-import { Compass, ArrowLeft, Search, ShieldAlert } from "lucide-react";
+import { Compass, ArrowLeft, ShieldAlert } from "lucide-react";
 
 export default function OpportunityNotFound() {
   return (

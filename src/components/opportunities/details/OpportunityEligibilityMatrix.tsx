@@ -11,11 +11,8 @@ import {
   CheckCircle2,
   XCircle,
   AlertTriangle,
-  Sparkles,
   ArrowRight,
-  ShieldCheck,
   Cpu,
-  Layers,
   UserCheck,
 } from "lucide-react";
 
