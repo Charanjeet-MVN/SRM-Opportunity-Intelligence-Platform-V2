@@ -11,11 +11,14 @@ import { Clock } from "lucide-react";
 interface StickyActionDockProps {
   opportunity: Opportunity;
   isRegistered?: boolean;
+  isSaved?: boolean;
+  trackerColumn?: string;
 }
 
 export default function StickyActionDock({
   opportunity,
   isRegistered = false,
+  isSaved = false,
 }: StickyActionDockProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -49,7 +52,7 @@ export default function StickyActionDock({
           transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           className="fixed bottom-4 sm:bottom-6 inset-x-0 z-40 px-4 pointer-events-none flex justify-center"
         >
-          <div className="w-full max-w-4xl bg-zinc-950/85 backdrop-blur-2xl border border-zinc-700/80 rounded-2xl sm:rounded-full p-2.5 sm:px-5 sm:py-3 shadow-2xl shadow-black/80 flex items-center justify-between gap-3 pointer-events-auto">
+          <div className="w-full max-w-4xl bg-zinc-950/90 backdrop-blur-2xl border border-zinc-700/80 rounded-2xl sm:rounded-full p-2.5 sm:px-5 sm:py-3 shadow-2xl shadow-black/80 flex items-center justify-between gap-3 pointer-events-auto">
             {/* Left: Title & Quick Meta */}
             <div className="min-w-0 flex-1 hidden md:block">
               <h4 className="text-xs font-bold text-zinc-100 truncate">
@@ -62,12 +65,12 @@ export default function StickyActionDock({
                 {opportunity.applicationDeadline && (
                   <span
                     className={`flex items-center gap-1 shrink-0 ${
-                      isDeadlinePassed ? "text-red-400" : "text-emerald-400"
+                      isDeadlinePassed ? "text-rose-400 font-semibold" : "text-emerald-400"
                     }`}
                   >
                     <Clock className="w-3 h-3" />
                     {isDeadlinePassed
-                      ? "Closed"
+                      ? "Application Closed"
                       : `Deadline: ${deadlineDate?.toLocaleDateString(undefined, {
                           month: "short",
                           day: "numeric",
@@ -82,8 +85,8 @@ export default function StickyActionDock({
               <h4 className="text-xs font-bold text-zinc-100 truncate">
                 {opportunity.title}
               </h4>
-              <span className="text-[10px] font-mono text-zinc-400 block truncate">
-                {opportunity.locationType.replace("_", " ")}
+              <span className={`text-[10px] font-mono block truncate ${isDeadlinePassed ? "text-rose-400" : "text-zinc-400"}`}>
+                {isDeadlinePassed ? "Closed" : opportunity.locationType.replace("_", " ")}
               </span>
             </div>
 
@@ -93,12 +96,21 @@ export default function StickyActionDock({
                 title={opportunity.title}
                 className="!p-2 !rounded-xl text-xs"
               />
-              <BookmarkButton opportunityId={opportunity.id} />
-              <RegisterApplyButton
+              <BookmarkButton
                 opportunityId={opportunity.id}
-                externalUrl={opportunity.externalUrl}
-                initialIsRegistered={isRegistered}
+                initialIsSaved={isSaved}
               />
+              {isDeadlinePassed ? (
+                <span className="px-3.5 py-2 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-500 font-mono text-xs">
+                  Closed
+                </span>
+              ) : (
+                <RegisterApplyButton
+                  opportunityId={opportunity.id}
+                  externalUrl={opportunity.externalUrl}
+                  initialIsRegistered={isRegistered}
+                />
+              )}
             </div>
           </div>
         </motion.div>

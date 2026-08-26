@@ -6,23 +6,26 @@ import {
   getOpportunityBySlugAction,
   getRelatedOpportunitiesAction,
 } from "@/lib/opportunities/actions";
-import { isOpportunityRegisteredAction } from "@/lib/engagement/actions";
+import {
+  isOpportunityRegisteredAction,
+  isOpportunitySavedAction,
+} from "@/lib/engagement/actions";
 import { StudentProfile } from "@/types";
 
 // Premium Details Components
 import OpportunityHero3D from "@/components/opportunities/details/OpportunityHero3D";
+import OpportunityDecisionSidebar from "@/components/opportunities/details/OpportunityDecisionSidebar";
+import OpportunityEligibilityMatrix from "@/components/opportunities/details/OpportunityEligibilityMatrix";
 import EventTimelineView from "@/components/opportunities/details/EventTimelineView";
 import OpportunityStorytelling from "@/components/opportunities/details/OpportunityStorytelling";
-import OrganizerSpotlightCard from "@/components/opportunities/details/OrganizerSpotlightCard";
 import RelatedOpportunitiesSection from "@/components/opportunities/details/RelatedOpportunitiesSection";
 import StickyActionDock from "@/components/opportunities/details/StickyActionDock";
 import AIOpportunityIntelligenceSection from "@/components/opportunities/AIOpportunityIntelligenceSection";
-import OpportunityEvaluationSection from "@/components/opportunities/OpportunityEvaluationSection";
 
 import {
   ArrowLeft,
   ChevronRight,
-  ShieldCheck,
+  Home,
 } from "lucide-react";
 
 interface OpportunityDetailPageProps {
@@ -34,7 +37,7 @@ export async function generateMetadata({ params }: OpportunityDetailPageProps) {
   const { opportunity } = await getOpportunityBySlugAction(slug);
 
   if (!opportunity) {
-    return { title: "Opportunity Not Found" };
+    return { title: "Opportunity Not Found | SRM Opportunity Intelligence" };
   }
 
   return {
@@ -62,9 +65,31 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
 
   let studentProfile: StudentProfile | null = null;
   let isRegistered = false;
+  let isSaved = false;
+  let trackerColumn: string | undefined = undefined;
 
   if (user) {
-    isRegistered = await isOpportunityRegisteredAction(opportunity.id);
+    const [regCheck, saveCheck] = await Promise.all([
+      isOpportunityRegisteredAction(opportunity.id),
+      isOpportunitySavedAction(opportunity.id),
+    ]);
+
+    isRegistered = regCheck;
+    isSaved = saveCheck;
+
+    // Check tracker notes column
+    const { data: regRecord } = await supabase
+      .from("registrations")
+      .select("notes, status")
+      .eq("user_id", user.id)
+      .eq("opportunity_id", opportunity.id)
+      .single();
+
+    if (regRecord?.notes) {
+      trackerColumn = regRecord.notes;
+    } else if (isSaved) {
+      trackerColumn = "Saved";
+    }
 
     const { data: prof } = await supabase
       .from("student_profiles")
@@ -96,85 +121,86 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
     <div className="min-h-screen bg-zinc-950 text-zinc-100 selection:bg-indigo-500/30 selection:text-indigo-200">
       {/* Top Breadcrumb Navigation Bar */}
       <header className="border-b border-zinc-800/80 bg-zinc-950/80 backdrop-blur-xl sticky top-0 z-30">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 text-xs font-mono">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <nav aria-label="Breadcrumb" className="flex items-center gap-2 text-xs font-mono">
             <Link
               href="/opportunities"
               className="inline-flex items-center gap-1.5 text-zinc-400 hover:text-zinc-200 transition-colors"
             >
               <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Explore Opportunities</span>
+              <span>Discover</span>
             </Link>
             <ChevronRight className="w-3 h-3 text-zinc-600 hidden sm:inline" />
-            <span className="text-zinc-500 truncate max-w-[200px] hidden sm:inline">
+            <span className="text-zinc-500 truncate max-w-[240px] hidden sm:inline">
               {opportunity.title}
             </span>
-          </div>
+          </nav>
 
           <div className="flex items-center gap-3">
             <Link
               href="/clubs"
               className="text-xs text-zinc-400 hover:text-zinc-200 font-mono transition-colors hidden sm:inline-block"
             >
-              Organizations
+              Clubs & Orgs
             </Link>
             <Link
               href="/dashboard/student"
-              className="px-3.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-xs font-medium transition-colors"
+              className="px-3.5 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 hover:bg-zinc-800 text-xs font-medium transition-colors flex items-center gap-1.5"
             >
-              Dashboard
+              <Home className="w-3.5 h-3.5 text-zinc-400" />
+              <span>Dashboard</span>
             </Link>
           </div>
         </div>
       </header>
 
       {/* Main Workspace Body */}
-      <main className="max-w-6xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-12">
-        {/* 1. Flagship Apple-Grade 3D Hero */}
-        <OpportunityHero3D opportunity={opportunity} isRegistered={isRegistered} />
-
-        {/* 2. Interactive Event Timeline Journey */}
-        <EventTimelineView opportunity={opportunity} />
-
-        {/* 3. AI Opportunity Intelligence Layer */}
-        <AIOpportunityIntelligenceSection
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-10 space-y-10">
+        {/* 1. Identity & Overview Hero */}
+        <OpportunityHero3D
           opportunity={opportunity}
-          profile={studentProfile}
-          isAuthenticated={Boolean(user)}
+          isRegistered={isRegistered}
         />
 
-        {/* 4. Deterministic Profile Overlap Evaluation */}
-        <OpportunityEvaluationSection
-          opportunity={opportunity}
-          profile={studentProfile}
-          isAuthenticated={Boolean(user)}
-        />
+        {/* 2. Structured Decision Architecture Grid (Main Content 70% + Decision Sidebar 30%) */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+          {/* LEFT 2 COLUMNS: Narrative, AI Executive Summary, Dedicated Eligibility, Roadmap */}
+          <div className="lg:col-span-2 space-y-8 min-w-0">
+            {/* AI Executive Intelligence (What, Who, Requirements, Why Matters, Next Action) */}
+            <AIOpportunityIntelligenceSection
+              opportunity={opportunity}
+              profile={studentProfile}
+              isAuthenticated={Boolean(user)}
+            />
 
-        {/* 5. Two-Column Narrative & Organizer Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left 2-Cols: Storytelling, Key Highlights, Skills, Academic Matrices */}
-          <div className="lg:col-span-2 space-y-8">
+            {/* Dedicated Eligibility & Skill Match Matrix */}
+            <OpportunityEligibilityMatrix
+              opportunity={opportunity}
+              profile={studentProfile}
+              isAuthenticated={Boolean(user)}
+            />
+
+            {/* Official Narrative & Storytelling */}
             <OpportunityStorytelling opportunity={opportunity} />
+
+            {/* Interactive Milestone Journey */}
+            <EventTimelineView opportunity={opportunity} />
           </div>
 
-          {/* Right 1-Col: Organizer Spotlight & Campus Guidelines */}
-          <div className="space-y-6">
-            <OrganizerSpotlightCard club={opportunity.club} />
-
-            {/* SRM Student Verification & Security Guarantee */}
-            <div className="rounded-3xl bg-zinc-950/70 border border-zinc-800/80 p-6 backdrop-blur-xl space-y-3">
-              <div className="flex items-center gap-2 text-xs font-mono uppercase text-emerald-400 font-bold">
-                <ShieldCheck className="w-4 h-4" />
-                <span>Verified SRM Campus Post</span>
-              </div>
-              <p className="text-xs text-zinc-400 font-light leading-relaxed">
-                This event is vetted for SRM student body compliance. All certificates and registration timestamps are recorded securely on the platform.
-              </p>
-            </div>
+          {/* RIGHT 1 COLUMN: Intelligent Decision & Action Panel */}
+          <div className="space-y-6 lg:sticky lg:top-24">
+            <OpportunityDecisionSidebar
+              opportunity={opportunity}
+              profile={studentProfile}
+              isAuthenticated={Boolean(user)}
+              isRegistered={isRegistered}
+              isSaved={isSaved}
+              trackerColumn={trackerColumn}
+            />
           </div>
         </div>
 
-        {/* 6. Related Opportunities Carousel */}
+        {/* 3. Related Opportunities Curated Row */}
         {related.length > 0 && (
           <RelatedOpportunitiesSection
             related={related}
@@ -183,8 +209,13 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
         )}
       </main>
 
-      {/* 7. Floating Sticky Action Dock (Appears on Scroll) */}
-      <StickyActionDock opportunity={opportunity} isRegistered={isRegistered} />
+      {/* 4. Floating Sticky Action Dock (Appears on Scroll) */}
+      <StickyActionDock
+        opportunity={opportunity}
+        isRegistered={isRegistered}
+        isSaved={isSaved}
+        trackerColumn={trackerColumn}
+      />
     </div>
   );
 }

@@ -234,26 +234,26 @@ export default function AIOpportunityIntelligenceSection({
               className="space-y-4 text-xs"
             >
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* What It Is */}
+                {/* 1. What It Is */}
                 <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
                   <span className="font-mono text-[10px] uppercase font-bold text-purple-400 block">
-                    What It Is
+                    1. What Is It?
                   </span>
                   <p className="text-zinc-300 leading-relaxed font-light">{summary.whatItIs}</p>
                 </div>
 
-                {/* Who Should Apply */}
+                {/* 2. Who Is It For */}
                 <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
                   <span className="font-mono text-[10px] uppercase font-bold text-indigo-400 block">
-                    Who Should Apply
+                    2. Who Is It For?
                   </span>
                   <p className="text-zinc-300 leading-relaxed font-light">{summary.whoShouldApply}</p>
                 </div>
 
-                {/* Key Requirements */}
+                {/* 3. Key Requirements / What You Will Do */}
                 <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
                   <span className="font-mono text-[10px] uppercase font-bold text-emerald-400 block">
-                    Key Requirements
+                    3. Key Requirements & Competencies
                   </span>
                   <div className="flex flex-wrap gap-1.5 pt-0.5">
                     {summary.keyRequirements.map((req, i) => (
@@ -264,17 +264,30 @@ export default function AIOpportunityIntelligenceSection({
                   </div>
                 </div>
 
-                {/* Important Dates & Why It Matters */}
+                {/* 4. Why Might It Matter */}
                 <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
                   <span className="font-mono text-[10px] uppercase font-bold text-amber-400 block">
-                    Important Dates & Value
+                    4. Why Might It Matter?
                   </span>
-                  <p className="text-zinc-300 leading-relaxed font-light">{summary.importantDates}</p>
-                  <p className="text-zinc-400 leading-relaxed font-light pt-1 border-t border-zinc-800/60">
-                    {summary.whyItMayMatter}
+                  <p className="text-zinc-300 leading-relaxed font-light">{summary.whyItMayMatter}</p>
+                  <p className="text-zinc-400 leading-relaxed font-light pt-1 border-t border-zinc-800/60 font-mono text-[11px]">
+                    {summary.importantDates}
                   </p>
                 </div>
               </div>
+
+              {/* 5. What Should You Do Next? */}
+              {summary.whatShouldDoNext && (
+                <div className="p-4 rounded-2xl bg-gradient-to-r from-purple-950/30 via-zinc-900 to-indigo-950/30 border border-purple-500/25 space-y-1.5">
+                  <span className="font-mono text-[10px] uppercase font-bold text-purple-300 block flex items-center gap-1.5">
+                    <Sparkles className="w-3 h-3 text-purple-400" />
+                    <span>5. What Should You Do Next?</span>
+                  </span>
+                  <p className="text-zinc-200 leading-relaxed font-light">
+                    {summary.whatShouldDoNext}
+                  </p>
+                </div>
+              )}
             </motion.div>
           )}
         </AnimatePresence>
