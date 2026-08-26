@@ -160,6 +160,7 @@ export default async function OpportunityDetailPage({ params }: OpportunityDetai
         <OpportunityHero3D
           opportunity={opportunity}
           isRegistered={isRegistered}
+          isSaved={isSaved}
         />
 
         {/* 2. Structured Decision Architecture Grid (Main Content 70% + Decision Sidebar 30%) */}

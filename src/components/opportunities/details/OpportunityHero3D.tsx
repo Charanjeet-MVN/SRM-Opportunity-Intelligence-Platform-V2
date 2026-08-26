@@ -20,11 +20,13 @@ import {
 interface OpportunityHero3DProps {
   opportunity: Opportunity;
   isRegistered?: boolean;
+  isSaved?: boolean;
 }
 
 export default function OpportunityHero3D({
   opportunity,
   isRegistered = false,
+  isSaved = false,
 }: OpportunityHero3DProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
@@ -141,9 +143,9 @@ export default function OpportunityHero3D({
               <div
                 className={`px-3.5 py-1.5 rounded-full text-xs font-mono flex items-center gap-2 border shadow-sm ${
                   urgencyLevel === "closed"
-                    ? "bg-red-500/10 text-red-400 border-red-500/25"
+                    ? "bg-rose-500/10 text-rose-400 border-rose-500/25"
                     : urgencyLevel === "critical"
-                    ? "bg-red-500/15 text-red-400 border-red-500/30 animate-pulse font-bold"
+                    ? "bg-rose-500/15 text-rose-400 border-rose-500/30 animate-pulse font-bold"
                     : urgencyLevel === "urgent"
                     ? "bg-amber-500/10 text-amber-300 border-amber-500/25 font-semibold"
                     : "bg-emerald-500/10 text-emerald-300 border-emerald-500/25"
@@ -185,7 +187,9 @@ export default function OpportunityHero3D({
               </div>
               <div className="space-y-0.5">
                 <span className="text-[10px] font-mono uppercase text-zinc-400 block tracking-wider">
-                  Organized by Official SRM Entity
+                  {opportunity.club.verificationStatus === "verified"
+                    ? "Official SRM Club ✓"
+                    : "Organized by SRM Campus Entity"}
                 </span>
                 <Link
                   href={`/clubs/${opportunity.club.slug || opportunity.club.id}`}
@@ -223,7 +227,7 @@ export default function OpportunityHero3D({
               </span>
               <span
                 className={`font-semibold block truncate ${
-                  isDeadlinePassed ? "text-red-400" : "text-zinc-200"
+                  isDeadlinePassed ? "text-rose-400" : "text-zinc-200"
                 }`}
               >
                 {opportunity.applicationDeadline
@@ -256,7 +260,7 @@ export default function OpportunityHero3D({
                   isRegistered
                     ? "text-emerald-400"
                     : isDeadlinePassed
-                    ? "text-red-400"
+                    ? "text-rose-400"
                     : "text-indigo-300"
                 }`}
               >
@@ -268,12 +272,24 @@ export default function OpportunityHero3D({
           {/* Primary Action CTA Bar */}
           <div className="flex flex-wrap items-center justify-between gap-4 pt-2">
             <div className="flex items-center gap-3">
-              <RegisterApplyButton
+              {isDeadlinePassed ? (
+                <button
+                  disabled
+                  className="py-2.5 px-5 rounded-xl text-xs font-semibold bg-zinc-900 border border-zinc-800 text-zinc-500 cursor-not-allowed"
+                >
+                  Application Closed
+                </button>
+              ) : (
+                <RegisterApplyButton
+                  opportunityId={opportunity.id}
+                  externalUrl={opportunity.externalUrl}
+                  initialIsRegistered={isRegistered}
+                />
+              )}
+              <BookmarkButton
                 opportunityId={opportunity.id}
-                externalUrl={opportunity.externalUrl}
-                initialIsRegistered={isRegistered}
+                initialIsSaved={isSaved}
               />
-              <BookmarkButton opportunityId={opportunity.id} />
               <ShareOpportunityButton title={opportunity.title} />
             </div>
 
