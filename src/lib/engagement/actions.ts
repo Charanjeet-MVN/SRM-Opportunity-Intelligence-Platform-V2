@@ -428,6 +428,17 @@ export async function updateOpportunityTrackerColumnAction(
     revalidatePath("/dashboard/student/saved");
     revalidatePath("/opportunities");
 
+    return { success: true };
+  } catch (err: unknown) {
+    const errorObj = err as { message?: string; code?: string };
+    if (errorObj.message?.includes("Could not find the table") || errorObj.code === "PGRST205") {
+      console.warn("Database not configured. Bypassing database upsert and relying on LocalStorage.");
+      return { success: true };
+    }
+    return { success: false, error: errorObj.message || "Failed to update tracker column" };
+  }
+}
+
 export type StudentLifecycleState = "saved" | "tracking" | "registered" | "attended" | "withdrawn" | "unsaved";
 
 /**

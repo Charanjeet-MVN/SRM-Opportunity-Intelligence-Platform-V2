@@ -4,12 +4,14 @@ import React from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { TrackerOpportunity } from "@/components/opportunities/StudentOpportunityTracker";
+import VerificationBadge from "@/components/clubs/VerificationBadge";
 import {
   Clock,
   CheckCircle2,
   ArrowRight,
   Calendar,
   Flame,
+  Building2,
 } from "lucide-react";
 import { getDeadlineUrgency } from "@/lib/notifications/urgency";
 
@@ -20,7 +22,7 @@ interface UpcomingDeadlinesTimelineProps {
 export default function UpcomingDeadlinesTimeline({
   trackedOpportunities,
 }: UpcomingDeadlinesTimelineProps) {
-  // Filter items that have deadlines and calculate urgency
+  // Filter items that have active deadlines and calculate urgency
   const now = new Date();
   const deadlineItems = trackedOpportunities
     .filter((opp) => opp.applicationDeadline)
@@ -29,7 +31,7 @@ export default function UpcomingDeadlinesTimeline({
       urgency: getDeadlineUrgency(opp.applicationDeadline),
       deadlineDate: new Date(opp.applicationDeadline!),
     }))
-    .filter((opp) => opp.deadlineDate.getTime() > now.getTime() && opp.urgency.status !== "expired")
+    .filter((opp) => opp.deadlineDate.getTime() > now.getTime() && !opp.urgency.isExpired)
     .sort((a, b) => a.deadlineDate.getTime() - b.deadlineDate.getTime())
     .slice(0, 5);
 
@@ -50,7 +52,7 @@ export default function UpcomingDeadlinesTimeline({
               Action Required
             </h2>
             <p className="text-xs text-zinc-400 font-mono">
-              Impending closing dates across your tracked listings.
+              Top urgent closing dates across your tracked listings.
             </p>
           </div>
 
@@ -87,19 +89,13 @@ export default function UpcomingDeadlinesTimeline({
         ) : (
           <div className="space-y-3 relative z-10">
             {deadlineItems.map((item, idx) => {
-              const diffMs = item.deadlineDate.getTime() - now.getTime();
-              const diffDays = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
-              const isDueToday = diffDays <= 1 || item.urgency.status === "due_today";
-              const isDueTomorrow = diffDays === 2 || item.urgency.status === "due_tomorrow";
-              const isUrgent = diffDays <= 3;
+              const isCritical = item.urgency.isCritical;
+              const isUrgent = item.urgency.urgencyLevel === "urgent";
 
-              let tierLabel = "UPCOMING";
               let tierColor = "bg-sky-500/10 text-sky-300 border-sky-500/25";
-              if (isDueToday) {
-                tierLabel = "CRITICAL";
+              if (isCritical) {
                 tierColor = "bg-rose-500/15 text-rose-300 border-rose-500/35 animate-pulse";
-              } else if (isDueTomorrow || isUrgent) {
-                tierLabel = "URGENT";
+              } else if (isUrgent) {
                 tierColor = "bg-amber-500/15 text-amber-300 border-amber-500/35";
               }
 
@@ -110,7 +106,7 @@ export default function UpcomingDeadlinesTimeline({
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: idx * 0.04, duration: 0.25 }}
                   className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-2.5 relative overflow-hidden group ${
-                    isDueToday
+                    isCritical
                       ? "bg-rose-950/20 border-rose-500/35 hover:border-rose-500/60"
                       : isUrgent
                       ? "bg-amber-950/15 border-amber-500/30 hover:border-amber-500/50"
@@ -120,7 +116,7 @@ export default function UpcomingDeadlinesTimeline({
                   {/* Left urgency indicator strip */}
                   <div
                     className={`absolute left-0 top-0 bottom-0 w-1 ${
-                      isDueToday
+                      isCritical
                         ? "bg-rose-500"
                         : isUrgent
                         ? "bg-amber-400"
@@ -133,15 +129,15 @@ export default function UpcomingDeadlinesTimeline({
                       <span
                         className={`text-[9px] font-mono px-2 py-0.5 rounded-full border font-bold uppercase tracking-wider ${tierColor}`}
                       >
-                        {tierLabel}
+                        {item.urgency.tierLabel}
                       </span>
                       <span className="text-[11px] font-mono text-zinc-400 flex items-center gap-1">
-                        {isDueToday ? (
+                        {isCritical ? (
                           <Flame className="w-3 h-3 text-rose-400" />
                         ) : (
                           <Clock className="w-3 h-3 text-amber-400" />
                         )}
-                        <span>{item.urgency.label}</span>
+                        <span>{item.urgency.countdownText}</span>
                       </span>
                     </div>
 
@@ -158,24 +154,20 @@ export default function UpcomingDeadlinesTimeline({
                     </Link>
                     <p className="text-[11px] font-mono text-zinc-400 flex items-center gap-1.5">
                       <Calendar className="w-3 h-3 text-zinc-500" />
-                      <span>
-                        {item.deadlineDate.toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          hour: "2-digit",
-                          minute: "2-digit",
-                        })}
-                      </span>
+                      <span>{item.urgency.formattedDeadline}</span>
                       <span className="text-zinc-600">•</span>
                       <span className="truncate max-w-[130px] text-zinc-400">
                         {item.club?.name || "SRM Organization"}
                       </span>
+                      {item.club?.verificationStatus === "verified" && (
+                        <VerificationBadge status="verified" size="sm" />
+                      )}
                     </p>
                   </div>
 
                   <div className="pl-1.5 pt-2 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono">
                     <span className="text-[10px] text-zinc-500">
-                      {diffDays <= 0 ? "Closing today" : `${diffDays} days remaining`}
+                      {item.urgency.label}
                     </span>
 
                     <Link
@@ -195,12 +187,12 @@ export default function UpcomingDeadlinesTimeline({
 
       {/* Subtle Footer Note */}
       <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono text-zinc-500 relative z-10">
-        <span>Calendar Sync: Automatic</span>
+        <span>Calendar Sync: Real-time</span>
         <Link
           href="/dashboard/student/calendar"
           className="text-zinc-400 hover:text-zinc-200 transition-colors"
         >
-          Full Timeline →
+          Full Radar →
         </Link>
       </div>
     </div>
