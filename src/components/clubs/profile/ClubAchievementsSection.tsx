@@ -1,14 +1,14 @@
 "use client";
 
 import React from "react";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { PublicClubRecord } from "@/lib/clubs/actions";
 import {
   Trophy,
-  Users,
   Calendar,
-  CheckCircle2,
   ShieldCheck,
+  Building2,
+  Tag,
 } from "lucide-react";
 
 interface ClubAchievementsSectionProps {
@@ -18,48 +18,60 @@ interface ClubAchievementsSectionProps {
 export default function ClubAchievementsSection({
   club,
 }: ClubAchievementsSectionProps) {
+  const shouldReduceMotion = useReducedMotion();
+  const isVerified = club.verificationStatus === "verified";
+
   const stats = [
     {
-      label: "Campus Opportunities",
-      value: `${club.opportunityCount > 0 ? club.opportunityCount : "10"}+`,
-      subtitle: "Published on Platform",
+      label: "Published Opportunities",
+      value: `${club.opportunityCount}`,
+      subtitle: club.opportunityCount === 1 ? "Active Platform Listing" : "Active Platform Listings",
       icon: Calendar,
       accent: "text-indigo-400",
     },
     {
-      label: "Community Reach",
-      value: "500+",
-      subtitle: "SRM Student Participants",
-      icon: Users,
-      accent: "text-purple-400",
+      label: "Institutional Standing",
+      value: isVerified ? "Verified" : "Registered",
+      subtitle: isVerified ? "Official SRM Accreditation" : "Standard Campus Charter",
+      icon: ShieldCheck,
+      accent: isVerified ? "text-emerald-400" : "text-amber-400",
     },
     {
-      label: "Verified Compliance",
-      value: "100%",
-      subtitle: "Institutional Standards",
-      icon: ShieldCheck,
-      accent: "text-emerald-400",
+      label: "Domain Focus",
+      value: club.category ? club.category.charAt(0).toUpperCase() + club.category.slice(1) : "Technical",
+      subtitle: "Primary Organization Category",
+      icon: Tag,
+      accent: "text-purple-400",
     },
   ];
 
   const milestones = [
     {
-      title: "Official SRM Organization Charter",
-      desc: "Recognized and chartered by SRM Directorate of Student Affairs for student leadership and technical contribution.",
-      date: "Campus Accreditation",
-      badge: "Official Seal",
+      title: isVerified ? "Official SRM Organization Charter" : "Campus Organization Registration",
+      desc: isVerified
+        ? `Officially recognized and authenticated by the SRM Opportunity Intelligence Platform${club.verifiedAt ? ` on ${new Date(club.verifiedAt).toLocaleDateString()}` : ""}.`
+        : "Registered on the SRM Opportunity Intelligence Platform under standard campus moderation guidelines.",
+      date: isVerified ? "Audited & Verified" : "Active Collective",
+      badge: isVerified ? "Official Charter" : "Campus Charter",
+      accent: isVerified ? "text-emerald-400" : "text-zinc-400",
     },
     {
-      title: "Annual Hackathon & Skill Sprint Host",
-      desc: "Conducting multi-track hackathons and engineering bootcamps empowering students across engineering branches.",
-      date: "Recurring Initiative",
-      badge: "Flagship Event",
+      title: "Opportunity Publisher Network",
+      desc: club.opportunityCount > 0
+        ? `Actively hosting ${club.opportunityCount} campus opportunity ${club.opportunityCount === 1 ? "initiative" : "initiatives"} for student skill acceleration and national participation.`
+        : "Student leadership team preparing upcoming hackathons, technical workshops, and campus recruitments.",
+      date: club.opportunityCount > 0 ? "Active Publisher" : "Upcoming Horizons",
+      badge: "Platform Network",
+      accent: "text-indigo-400",
     },
     {
-      title: "Open-Source & Project Incubation Hub",
-      desc: "Mentoring student-led projects from conceptual prototypes to national hackathon podium finishes.",
-      date: "Active Program",
-      badge: "Impact Milestone",
+      title: "Verified Student Communication",
+      desc: club.officialEmail
+        ? `Official institutional channel active at ${club.officialEmail} for student queries and recruitment applications.`
+        : "Official campus opportunities published directly to student dashboard feeds and discover channels.",
+      date: "Direct Channel",
+      badge: "Governance",
+      accent: "text-purple-400",
     },
   ];
 
@@ -69,14 +81,14 @@ export default function ClubAchievementsSection({
       <div className="flex items-center justify-between border-b border-zinc-800/70 pb-3">
         <div className="flex items-center gap-2 text-xs font-mono uppercase font-bold text-amber-400 tracking-wider">
           <Trophy className="w-4 h-4" />
-          <span>Club Achievements & Impact Milestones</span>
+          <span>Organization Metrics & Accreditation</span>
         </div>
         <span className="text-[11px] font-mono text-zinc-500">
-          Campus Portfolio
+          Real Database Signals
         </span>
       </div>
 
-      {/* 1. Impact Numbers Strip */}
+      {/* 1. Measurable Data Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         {stats.map((stat, idx) => {
           const Icon = stat.icon;
@@ -84,10 +96,10 @@ export default function ClubAchievementsSection({
           return (
             <motion.div
               key={stat.label}
-              initial={{ opacity: 0, y: 10 }}
+              initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.08, duration: 0.3 }}
-              className="p-5 rounded-3xl bg-zinc-950/80 border border-zinc-800/80 p-5 flex items-center gap-4 shadow-xl backdrop-blur-xl"
+              className="p-5 rounded-3xl bg-zinc-950/80 border border-zinc-800/80 flex items-center gap-4 shadow-xl backdrop-blur-xl"
             >
               <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center shadow-inner shrink-0">
                 <Icon className={`w-6 h-6 ${stat.accent}`} />
@@ -109,18 +121,18 @@ export default function ClubAchievementsSection({
         })}
       </div>
 
-      {/* 2. Milestone Cards */}
+      {/* 2. Real Milestone Portfolio Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {milestones.map((milestone, idx) => (
           <motion.div
             key={milestone.title}
-            initial={{ opacity: 0, y: 15 }}
+            initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 12 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: idx * 0.1, duration: 0.35 }}
+            transition={{ delay: idx * 0.1, duration: 0.3 }}
             className="p-5 rounded-3xl bg-zinc-900/60 border border-zinc-800/80 hover:border-zinc-700 transition-all flex flex-col justify-between space-y-3 shadow-xl backdrop-blur-xl"
           >
             <div className="flex items-center justify-between gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-amber-500/10 border border-amber-500/20 text-amber-300 font-semibold">
+              <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-300 font-semibold">
                 {milestone.badge}
               </span>
               <span className="text-[10px] font-mono text-zinc-500">
@@ -137,9 +149,9 @@ export default function ClubAchievementsSection({
               </p>
             </div>
 
-            <div className="pt-2 border-t border-zinc-800/60 flex items-center gap-1 text-[11px] font-mono text-emerald-400">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Verified Milestone</span>
+            <div className="pt-2 border-t border-zinc-800/60 flex items-center gap-1.5 text-[11px] font-mono text-zinc-400">
+              <Building2 className="w-3.5 h-3.5 text-zinc-500" />
+              <span>{club.name}</span>
             </div>
           </motion.div>
         ))}

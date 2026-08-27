@@ -1,13 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Opportunity } from "@/types";
 import OpportunityCard from "@/components/opportunities/OpportunityCard";
 import {
   Layers,
   Calendar,
+  Compass,
 } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import Link from "next/link";
 
 interface ClubEventShowcaseProps {
   opportunities: Opportunity[];
@@ -18,24 +20,75 @@ export default function ClubEventShowcase({
   opportunities,
   clubName,
 }: ClubEventShowcaseProps) {
-  const [activeTab, setActiveTab] = useState<"all" | "active" | "hackathon" | "workshop" | "other">("all");
+  const shouldReduceMotion = useReducedMotion();
+  const [activeTab, setActiveTab] = useState<string>("all");
 
   const now = new Date();
 
-  // Filter opportunities based on active tab
-  const filtered = opportunities.filter((opp) => {
-    if (activeTab === "all") return true;
-
-    if (activeTab === "active") {
+  // Tab definitions with dynamic counts
+  const tabs = useMemo(() => {
+    const activeCount = opportunities.filter((opp) => {
       if (!opp.applicationDeadline) return true;
       return new Date(opp.applicationDeadline) >= now;
-    }
+    }).length;
 
-    if (activeTab === "hackathon") return opp.type === "hackathon" || opp.type === "competition";
-    if (activeTab === "workshop") return opp.type === "workshop" || opp.type === "bootcamp" || opp.type === "conference";
+    const hackathonCount = opportunities.filter(
+      (opp) => opp.type === "hackathon" || opp.type === "competition"
+    ).length;
 
-    return true;
-  });
+    const workshopCount = opportunities.filter(
+      (opp) => opp.type === "workshop" || opp.type === "bootcamp" || opp.type === "conference"
+    ).length;
+
+    const recruitmentCount = opportunities.filter(
+      (opp) => opp.type === "club_recruitment" || opp.type === "placement_drive" || opp.type === "internship"
+    ).length;
+
+    const list = [
+      { id: "all", label: "All Postings", count: opportunities.length },
+      { id: "active", label: "Active & Upcoming", count: activeCount },
+      { id: "hackathon", label: "Hackathons", count: hackathonCount },
+      { id: "workshop", label: "Workshops", count: workshopCount },
+      { id: "recruitment", label: "Recruitments", count: recruitmentCount },
+    ];
+
+    return list.filter((t) => t.id === "all" || t.count > 0);
+  }, [opportunities, now]);
+
+  // Filter opportunities based on active tab
+  const filtered = useMemo(() => {
+    return opportunities.filter((opp) => {
+      if (activeTab === "all") return true;
+
+      if (activeTab === "active") {
+        if (!opp.applicationDeadline) return true;
+        return new Date(opp.applicationDeadline) >= now;
+      }
+
+      if (activeTab === "hackathon") return opp.type === "hackathon" || opp.type === "competition";
+      if (activeTab === "workshop") return opp.type === "workshop" || opp.type === "bootcamp" || opp.type === "conference";
+      if (activeTab === "recruitment") return opp.type === "club_recruitment" || opp.type === "placement_drive" || opp.type === "internship";
+
+      return true;
+    });
+  }, [opportunities, activeTab, now]);
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: shouldReduceMotion ? 0 : 0.05 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: shouldReduceMotion ? 0.01 : 0.3, ease: [0.22, 1, 0.36, 1] as const },
+    },
+  };
 
   return (
     <div className="space-y-6">
@@ -44,7 +97,7 @@ export default function ClubEventShowcase({
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-xs font-mono uppercase font-bold text-purple-400 tracking-wider">
             <Layers className="w-4 h-4" />
-            <span>Event & Opportunity Showcase</span>
+            <span>Opportunity & Event Showcase</span>
           </div>
           <h2 className="text-xl sm:text-2xl font-bold text-zinc-100 tracking-tight">
             Published Campus Opportunities ({opportunities.length})
@@ -53,35 +106,56 @@ export default function ClubEventShowcase({
 
         {/* Tab Switcher Pills */}
         <div className="flex items-center gap-1.5 p-1 rounded-2xl bg-zinc-900 border border-zinc-800 flex-wrap">
-          {[
-            { id: "all", label: "All Postings" },
-            { id: "active", label: "Active & Upcoming" },
-            { id: "hackathon", label: "Hackathons" },
-            { id: "workshop", label: "Workshops" },
-          ].map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as never)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-medium transition-all cursor-pointer ${
+              onClick={() => setActiveTab(tab.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-mono font-medium transition-all flex items-center gap-1.5 cursor-pointer ${
                 activeTab === tab.id
-                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/25"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/25 font-bold"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              {tab.label}
+              <span>{tab.label}</span>
+              <span
+                className={`px-1.5 py-0.2 rounded-full text-[10px] ${
+                  activeTab === tab.id ? "bg-purple-700 text-purple-100" : "bg-zinc-800 text-zinc-500"
+                }`}
+              >
+                {tab.count}
+              </span>
             </button>
           ))}
         </div>
       </div>
 
       {/* Grid or Empty State */}
-      {filtered.length === 0 ? (
+      {opportunities.length === 0 ? (
         <div className="py-16 px-6 rounded-3xl bg-zinc-950/70 border border-zinc-800/80 text-center space-y-3 max-w-md mx-auto backdrop-blur-xl">
           <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mx-auto">
             <Calendar className="w-6 h-6 text-purple-400" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-zinc-200">No opportunities in this category</h3>
+            <h3 className="text-sm font-bold text-zinc-200 font-mono">No upcoming opportunities</h3>
+            <p className="text-xs text-zinc-400 font-mono leading-relaxed">
+              {clubName} hasn&apos;t published any active opportunities yet. Check back soon or explore platform listings.
+            </p>
+          </div>
+          <Link
+            href="/opportunities"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-mono font-medium transition-colors"
+          >
+            <Compass className="w-3.5 h-3.5" />
+            <span>Browse Other Opportunities</span>
+          </Link>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="py-16 px-6 rounded-3xl bg-zinc-950/70 border border-zinc-800/80 text-center space-y-3 max-w-md mx-auto backdrop-blur-xl">
+          <div className="w-12 h-12 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center text-zinc-500 mx-auto">
+            <Calendar className="w-6 h-6 text-purple-400" />
+          </div>
+          <div className="space-y-1">
+            <h3 className="text-sm font-bold text-zinc-200 font-mono">No opportunities in this category</h3>
             <p className="text-xs text-zinc-400 font-mono">
               {clubName} has no listings under this filter right now.
             </p>
@@ -94,22 +168,18 @@ export default function ClubEventShowcase({
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          <AnimatePresence mode="popLayout">
-            {filtered.map((opp) => (
-              <motion.div
-                key={opp.id}
-                initial={{ opacity: 0, y: 15 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ duration: 0.3 }}
-                className="h-full"
-              >
-                <OpportunityCard opportunity={opp} />
-              </motion.div>
-            ))}
-          </AnimatePresence>
-        </div>
+        <motion.div
+          variants={containerVariants}
+          initial="hidden"
+          animate="show"
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {filtered.map((opp) => (
+            <motion.div key={opp.id} variants={itemVariants} className="h-full">
+              <OpportunityCard opportunity={opp} />
+            </motion.div>
+          ))}
+        </motion.div>
       )}
     </div>
   );

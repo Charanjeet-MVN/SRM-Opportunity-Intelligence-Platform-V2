@@ -8,6 +8,7 @@ import SpatialCard3D from "@/components/3d/SpatialCard3D";
 import {
   ArrowRight,
   Layers,
+  Sparkles,
 } from "lucide-react";
 
 interface ClubCard3DProps {
@@ -16,12 +17,14 @@ interface ClubCard3DProps {
 
 export default function ClubCard3D({ club }: ClubCard3DProps) {
   const clubSlugOrId = club.slug || club.id;
+  const isVerified = club.verificationStatus === "verified";
+  const hasOpportunities = club.opportunityCount > 0;
 
   return (
     <SpatialCard3D
       depth={8}
-      elevationZ={18}
-      glowColor="rgba(147, 51, 234, 0.18)"
+      elevationZ={16}
+      glowColor={isVerified ? "rgba(59, 130, 246, 0.2)" : "rgba(147, 51, 234, 0.16)"}
       className="h-full"
     >
       <div
@@ -30,11 +33,17 @@ export default function ClubCard3D({ club }: ClubCard3DProps) {
         className="group rounded-3xl bg-zinc-950/85 border border-zinc-800/80 hover:border-purple-500/50 p-6 flex flex-col justify-between transition-all duration-300 shadow-2xl backdrop-blur-xl h-full space-y-5 relative overflow-hidden"
       >
         {/* Top ambient illumination line */}
-        <div className="absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-purple-500/0 to-transparent group-hover:via-purple-500/60 transition-all duration-500 pointer-events-none" />
+        <div
+          className={`absolute top-0 left-0 right-0 h-1 transition-all duration-500 pointer-events-none ${
+            isVerified
+              ? "bg-gradient-to-r from-blue-500/40 via-blue-400 to-indigo-500/40"
+              : "bg-gradient-to-r from-purple-500/20 via-purple-500/60 to-purple-500/20"
+          }`}
+        />
 
-        <div className="space-y-4">
-          {/* Header Row: Logo + Verification Badge */}
-          <div className="flex items-center justify-between gap-3">
+        <div className="space-y-4 pt-1">
+          {/* Header Row: Logo Avatar + Official Verification Badge */}
+          <div className="flex items-start justify-between gap-3">
             <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-zinc-800 flex items-center justify-center font-bold text-indigo-400 text-xl overflow-hidden shrink-0 shadow-md group-hover:scale-105 group-hover:border-purple-500/40 transition-all">
               {club.logoUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -51,8 +60,8 @@ export default function ClubCard3D({ club }: ClubCard3DProps) {
             <VerificationBadge status={club.verificationStatus} />
           </div>
 
-          {/* Title & Category */}
-          <div className="space-y-1">
+          {/* Title & Domain/Category */}
+          <div className="space-y-1.5">
             <Link href={`/clubs/${clubSlugOrId}`}>
               <h3 className="text-base sm:text-lg font-bold text-zinc-100 group-hover:text-purple-300 transition-colors line-clamp-1">
                 {club.name}
@@ -60,37 +69,50 @@ export default function ClubCard3D({ club }: ClubCard3DProps) {
             </Link>
 
             {club.category && (
-              <span className="inline-block px-2.5 py-0.5 rounded-lg text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-indigo-300 uppercase tracking-wider">
+              <span className="inline-block px-2.5 py-0.5 rounded-lg text-[10px] font-mono bg-zinc-900 border border-zinc-800 text-indigo-300 uppercase tracking-wider capitalize">
                 {club.category}
               </span>
             )}
           </div>
 
-          {/* Description */}
+          {/* Short Description */}
           {club.description && (
-            <p className="text-xs text-zinc-400 line-clamp-3 leading-relaxed font-light">
+            <p className="text-xs text-zinc-400 line-clamp-2 leading-relaxed font-light">
               {club.description}
             </p>
           )}
         </div>
 
-        {/* Footer Meta Row */}
-        <div className="pt-4 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono">
-          <div className="flex items-center gap-1.5 text-zinc-400">
-            <Layers className="w-3.5 h-3.5 text-purple-400" />
-            <span>
-              {club.opportunityCount > 0
-                ? `${club.opportunityCount} Active ${club.opportunityCount === 1 ? "Post" : "Posts"}`
-                : "Active Chapter"}
-            </span>
+        {/* Footer Row: Activity Signal & Primary CTA */}
+        <div className="pt-4 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono gap-2">
+          {/* Real Measurable Signal */}
+          <div className="flex items-center gap-1.5 text-zinc-400 text-[11px] truncate">
+            {hasOpportunities ? (
+              <>
+                <Layers className="w-3.5 h-3.5 text-purple-400 shrink-0" />
+                <span className="text-purple-300 font-semibold truncate">
+                  {club.opportunityCount} upcoming {club.opportunityCount === 1 ? "opportunity" : "opportunities"}
+                </span>
+              </>
+            ) : isVerified ? (
+              <>
+                <Sparkles className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                <span className="text-blue-300 font-medium truncate">Official SRM Chapter</span>
+              </>
+            ) : (
+              <>
+                <Layers className="w-3.5 h-3.5 text-zinc-500 shrink-0" />
+                <span className="text-zinc-500 truncate">Active Chapter</span>
+              </>
+            )}
           </div>
 
           <Link
             href={`/clubs/${clubSlugOrId}`}
-            className="text-purple-400 hover:text-purple-300 font-semibold inline-flex items-center gap-1 group/btn shrink-0"
+            className="px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 hover:text-white font-semibold text-xs transition-colors inline-flex items-center gap-1 group/btn shrink-0 cursor-pointer"
           >
-            <span>Explore Club</span>
-            <ArrowRight className="w-3.5 h-3.5 group-hover/btn:translate-x-1 transition-transform" />
+            <span>View Club</span>
+            <ArrowRight className="w-3 h-3 group-hover/btn:translate-x-0.5 transition-transform" />
           </Link>
         </div>
       </div>
