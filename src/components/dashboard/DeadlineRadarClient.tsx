@@ -2,12 +2,15 @@
 
 import React, { useState, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { StudentProfile } from "@/types";
 import { TrackerOpportunity } from "@/components/opportunities/StudentOpportunityTracker";
 import { calculateOpportunityRelevance, RelevanceScoreResult } from "@/lib/relevance/scoring";
-import { getDeadlineUrgency } from "@/lib/notifications/urgency";
+import { getDeadlineUrgency, UrgencyLevel, DeadlineUrgencyResult } from "@/lib/notifications/urgency";
+import { updateOpportunityLifecycleStateAction, StudentLifecycleState } from "@/lib/engagement/actions";
 import BookmarkButton from "@/components/opportunities/BookmarkButton";
+import OpportunityTypeBadge from "@/components/opportunities/OpportunityTypeBadge";
+import VerificationBadge from "@/components/clubs/VerificationBadge";
 import SpatialCard3D from "@/components/3d/SpatialCard3D";
 import {
   Clock,
@@ -26,6 +29,8 @@ import {
   Check,
   Building2,
   Zap,
+  Award,
+  AlertCircle,
 } from "lucide-react";
 
 export interface TimelineMilestone {
@@ -38,34 +43,17 @@ export interface TimelineMilestone {
   opportunityType: string;
 }
 
-type ViewMode = "radar" | "calendar" | "kanban";
-type UrgencyBand = "all" | "urgent" | "soon" | "upcoming" | "expired";
-type TrackingFilter = "all" | "saved" | "registered";
+type ViewMode = "radar" | "calendar";
+type UrgencyBandFilter = "all" | "critical" | "urgent" | "upcoming" | "later" | "closed";
+type TrackingFilter = "all" | "saved" | "applied" | "completed";
 
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.05 },
-  },
-};
-
-const itemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as [number, number, number, number] },
-  },
-};
-
-interface ProcessedRadarItem extends TrackerOpportunity {
-  urgency: ReturnType<typeof getDeadlineUrgency>;
+export interface ProcessedRadarItem extends TrackerOpportunity {
+  urgency: DeadlineUrgencyResult;
   relevance: RelevanceScoreResult;
-  urgencyBand: "urgent" | "soon" | "upcoming" | "expired" | "no_deadline";
-  trackingState: "saved" | "registered" | "attended";
+  urgencyLevel: UrgencyLevel;
+  trackingState: "saved" | "tracking" | "applied" | "completed" | "closed";
+  statusText: string;
   priorityScore: number;
-  remainingText: string;
 }
 
 interface DeadlineRadarClientProps {
@@ -80,34 +68,42 @@ export default function DeadlineRadarClient({
   registeredOpportunities,
   studentProfile,
 }: DeadlineRadarClientProps) {
+  const shouldReduceMotion = useReducedMotion();
   const [viewMode, setViewMode] = useState<ViewMode>("radar");
-  const [urgencyFilter, setUrgencyFilter] = useState<UrgencyBand>("all");
+  const [urgencyFilter, setUrgencyFilter] = useState<UrgencyBandFilter>("all");
   const [trackingFilter, setTrackingFilter] = useState<TrackingFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState<"priority" | "deadline" | "relevance" | "newest">("priority");
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Calendar specific state
+  // Month Calendar specific state
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
 
-  // Combine and deduplicate tracked opportunities with computed real metrics
-  const processedItems: ProcessedRadarItem[] = useMemo(() => {
-    const map = new Map<string, TrackerOpportunity & { trackingState: "saved" | "registered" | "attended" }>();
+  const showToast = (message: string, type: "success" | "error" = "success") => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
 
-    // Add saved
+  // Combine and deduplicate tracked opportunities with real Supabase urgency & tracking status
+  const processedItems: ProcessedRadarItem[] = useMemo(() => {
+    const map = new Map<string, TrackerOpportunity & { isRegistered?: boolean; regStatus?: string }>();
+
+    // 1. Ingest saved
     savedOpportunities.forEach((opp) => {
-      map.set(opp.id, { ...opp, trackingState: "saved" });
+      map.set(opp.id, { ...opp });
     });
 
-    // Add registered (overrides tracking state to registered/attended)
+    // 2. Ingest registered
     registeredOpportunities.forEach((opp) => {
-      const state = opp.registrationStatus === "attended" ? "attended" : "registered";
       const existing = map.get(opp.id);
       map.set(opp.id, {
         ...(existing || opp),
         ...opp,
-        trackingState: state,
+        isRegistered: true,
+        regStatus: opp.registrationStatus || "registered",
       });
     });
 
@@ -117,47 +113,34 @@ export default function DeadlineRadarClient({
       const urgency = getDeadlineUrgency(opp.applicationDeadline);
       const relevance = calculateOpportunityRelevance(studentProfile, opp);
 
-      // Determine deterministic Urgency Band
-      let urgencyBand: "urgent" | "soon" | "upcoming" | "expired" | "no_deadline" = "no_deadline";
-      if (urgency.status === "expired") {
-        urgencyBand = "expired";
-      } else if (urgency.status === "due_today" || urgency.status === "due_tomorrow" || (urgency.daysLeft !== null && urgency.daysLeft <= 2)) {
-        urgencyBand = "urgent";
-      } else if (urgency.daysLeft !== null && urgency.daysLeft <= 7) {
-        urgencyBand = "soon";
+      // Determine real tracking state
+      let trackingState: "saved" | "tracking" | "applied" | "completed" | "closed" = "saved";
+      if (opp.regStatus === "attended") {
+        trackingState = "completed";
+      } else if (opp.isRegistered || opp.regStatus === "registered") {
+        trackingState = "applied";
+      } else if (urgency.isExpired) {
+        trackingState = "closed";
       } else if (opp.applicationDeadline) {
-        urgencyBand = "upcoming";
+        trackingState = "tracking";
+      } else {
+        trackingState = "saved";
       }
 
-      // Remaining text formatting
-      let remainingText = urgency.label;
-      if (opp.applicationDeadline) {
-        const diffMs = new Date(opp.applicationDeadline).getTime() - Date.now();
-        if (diffMs > 0) {
-          const hours = Math.floor(diffMs / (1000 * 60 * 60));
-          if (hours < 24) {
-            remainingText = `Closes in ${hours} hour${hours === 1 ? "" : "s"}`;
-          } else if (urgency.daysLeft === 1) {
-            remainingText = "Closes tomorrow";
-          } else if (urgency.daysLeft !== null && urgency.daysLeft <= 7) {
-            remainingText = `${urgency.daysLeft} days remaining`;
-          } else {
-            remainingText = `Closes ${new Date(opp.applicationDeadline).toLocaleDateString(undefined, {
-              month: "short",
-              day: "numeric",
-            })}`;
-          }
-        }
-      }
+      let statusText = "Saved";
+      if (trackingState === "completed") statusText = "Completed";
+      else if (trackingState === "applied") statusText = "Applied";
+      else if (trackingState === "tracking") statusText = "Tracking";
+      else if (trackingState === "closed") statusText = "Closed";
 
       // Deterministic Priority Score (0 - 100):
-      // Urgency Weight: 60 pts max (closes in <24h = 60, <48h = 50, <7d = 35, upcoming = 15, expired = 0)
+      // Urgency Weight: 60 pts max (Critical = 60, Urgent = 50, Upcoming = 35, Later = 15, Expired = 0)
       // Relevance Weight: 40 pts max (relevanceScore / 100 * 40)
       let urgencyPts = 15;
-      if (urgencyBand === "expired") urgencyPts = 0;
-      else if (urgency.status === "due_today") urgencyPts = 60;
-      else if (urgency.status === "due_tomorrow" || urgencyBand === "urgent") urgencyPts = 50;
-      else if (urgencyBand === "soon") urgencyPts = 35;
+      if (urgency.urgencyLevel === "expired") urgencyPts = 0;
+      else if (urgency.urgencyLevel === "critical") urgencyPts = 60;
+      else if (urgency.urgencyLevel === "urgent") urgencyPts = 50;
+      else if (urgency.urgencyLevel === "upcoming") urgencyPts = 35;
 
       const relevancePts = Math.round((relevance.totalScore / 100) * 40);
       const priorityScore = Math.min(100, urgencyPts + relevancePts);
@@ -166,40 +149,47 @@ export default function DeadlineRadarClient({
         ...opp,
         urgency,
         relevance,
-        urgencyBand,
+        urgencyLevel: urgency.urgencyLevel,
+        trackingState,
+        statusText,
         priorityScore,
-        remainingText,
       };
     });
   }, [savedOpportunities, registeredOpportunities, studentProfile]);
 
-  // Metric counts
+  // Telemetry counts
   const counts = useMemo(() => {
+    let critical = 0;
     let urgent = 0;
-    let soon = 0;
     let upcoming = 0;
-    let expired = 0;
+    let later = 0;
+    let closed = 0;
     let saved = 0;
-    let registered = 0;
+    let applied = 0;
+    let completed = 0;
 
     processedItems.forEach((item) => {
-      if (item.urgencyBand === "urgent") urgent++;
-      else if (item.urgencyBand === "soon") soon++;
-      else if (item.urgencyBand === "upcoming") upcoming++;
-      else if (item.urgencyBand === "expired") expired++;
+      if (item.urgencyLevel === "critical") critical++;
+      else if (item.urgencyLevel === "urgent") urgent++;
+      else if (item.urgencyLevel === "upcoming") upcoming++;
+      else if (item.urgencyLevel === "later") later++;
+      else if (item.urgencyLevel === "expired") closed++;
 
-      if (item.trackingState === "saved") saved++;
-      else if (item.trackingState === "registered" || item.trackingState === "attended") registered++;
+      if (item.trackingState === "saved" || item.trackingState === "tracking") saved++;
+      else if (item.trackingState === "applied") applied++;
+      else if (item.trackingState === "completed") completed++;
     });
 
     return {
       total: processedItems.length,
+      critical,
       urgent,
-      soon,
       upcoming,
-      expired,
+      later,
+      closed,
       saved,
-      registered,
+      applied,
+      completed,
     };
   }, [processedItems]);
 
@@ -208,13 +198,16 @@ export default function DeadlineRadarClient({
     return processedItems
       .filter((item) => {
         // Urgency filter
-        if (urgencyFilter !== "all" && item.urgencyBand !== urgencyFilter) {
-          return false;
-        }
+        if (urgencyFilter === "critical" && item.urgencyLevel !== "critical") return false;
+        if (urgencyFilter === "urgent" && item.urgencyLevel !== "urgent") return false;
+        if (urgencyFilter === "upcoming" && item.urgencyLevel !== "upcoming") return false;
+        if (urgencyFilter === "later" && item.urgencyLevel !== "later") return false;
+        if (urgencyFilter === "closed" && item.urgencyLevel !== "expired") return false;
 
         // Tracking filter
-        if (trackingFilter === "saved" && item.trackingState !== "saved") return false;
-        if (trackingFilter === "registered" && item.trackingState !== "registered" && item.trackingState !== "attended") return false;
+        if (trackingFilter === "saved" && item.trackingState !== "saved" && item.trackingState !== "tracking") return false;
+        if (trackingFilter === "applied" && item.trackingState !== "applied") return false;
+        if (trackingFilter === "completed" && item.trackingState !== "completed") return false;
 
         // Category filter
         if (categoryFilter !== "all" && item.type !== categoryFilter) return false;
@@ -242,13 +235,14 @@ export default function DeadlineRadarClient({
       });
   }, [processedItems, urgencyFilter, trackingFilter, categoryFilter, searchQuery, sortBy]);
 
-  // Grouped by bands for Radar / Chrono view
+  // Grouped by standardized urgency bands
   const bandGrouped = useMemo(() => {
     return {
-      urgent: filteredItems.filter((i) => i.urgencyBand === "urgent"),
-      soon: filteredItems.filter((i) => i.urgencyBand === "soon"),
-      upcoming: filteredItems.filter((i) => i.urgencyBand === "upcoming" || i.urgencyBand === "no_deadline"),
-      expired: filteredItems.filter((i) => i.urgencyBand === "expired"),
+      critical: filteredItems.filter((i) => i.urgencyLevel === "critical"),
+      urgent: filteredItems.filter((i) => i.urgencyLevel === "urgent"),
+      upcoming: filteredItems.filter((i) => i.urgencyLevel === "upcoming"),
+      later: filteredItems.filter((i) => i.urgencyLevel === "later" || i.urgencyLevel === "no_deadline"),
+      closed: filteredItems.filter((i) => i.urgencyLevel === "expired"),
     };
   }, [filteredItems]);
 
@@ -276,15 +270,71 @@ export default function DeadlineRadarClient({
     return map;
   }, [processedItems]);
 
+  const handleAction = async (item: ProcessedRadarItem, targetState: StudentLifecycleState) => {
+    setUpdatingId(item.id);
+    try {
+      const res = await updateOpportunityLifecycleStateAction(item.id, targetState);
+      if (res.success) {
+        showToast(`Updated status for "${item.title}"`);
+      } else {
+        showToast(res.error || "Failed to update status", "error");
+      }
+    } catch {
+      showToast("Network error updating status", "error");
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    show: {
+      opacity: 1,
+      transition: { staggerChildren: shouldReduceMotion ? 0 : 0.05 },
+    },
+  };
+
+  const itemVariants = {
+    hidden: { opacity: 0, y: shouldReduceMotion ? 0 : 12 },
+    show: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: shouldReduceMotion ? 0.01 : 0.35, ease: [0.22, 1, 0.36, 1] as const },
+    },
+  };
+
   return (
     <motion.div variants={containerVariants} initial="hidden" animate="show" className="space-y-8 max-w-7xl mx-auto">
-      {/* ── HEADER BANNER: RADAR TELEMETRY ── */}
+      {/* Toast Notification */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className={`fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-2xl border flex items-center gap-2.5 font-mono text-xs ${
+              toast.type === "success"
+                ? "bg-emerald-950/90 border-emerald-500/40 text-emerald-200"
+                : "bg-rose-950/90 border-rose-500/40 text-rose-200"
+            } backdrop-blur-xl`}
+          >
+            {toast.type === "success" ? (
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-400" />
+            )}
+            <span>{toast.message}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── HEADER BANNER: DEADLINE RADAR ── */}
       <motion.div
         variants={itemVariants}
         className="relative overflow-hidden rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-6 sm:p-8 space-y-6 shadow-2xl backdrop-blur-2xl"
       >
-        <div className="absolute -top-32 -right-32 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-amber-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-80 h-80 bg-rose-600/10 rounded-full blur-3xl pointer-events-none" />
 
         <div className="relative z-10 flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
           <div className="space-y-3">
@@ -295,73 +345,80 @@ export default function DeadlineRadarClient({
                   Deadline Radar
                 </span>
                 <span className="text-zinc-700">•</span>
-                <span className="text-zinc-400 text-[10px]">Real-time Tracking Intelligence</span>
+                <span className="text-zinc-400 text-[10px]">Urgency Intelligence</span>
               </div>
 
-              {counts.urgent > 0 && (
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono bg-rose-500/15 border border-rose-500/30 text-rose-300 animate-pulse font-bold">
+              {(counts.critical > 0 || counts.urgent > 0) && (
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono bg-rose-500/15 border border-rose-500/30 text-rose-300 font-bold">
                   <Flame className="w-3.5 h-3.5 text-rose-400" />
-                  <span>{counts.urgent} Closing Imminently</span>
+                  <span>{counts.critical + counts.urgent} Action Required Imminently</span>
                 </div>
               )}
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-              Opportunity Deadline Intelligence
+              What do I need to act on soon?
             </h1>
 
             <p className="text-xs sm:text-sm text-zinc-400 font-light leading-relaxed max-w-2xl">
-              Chronological radar mapping application cutoffs, hackathon registrations, and campus milestones for opportunities you are actively tracking across SRM.
+              Deterministic radar ranking upcoming closing deadlines, application cutoffs, and scheduled milestones across your tracked opportunities.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <Link
-              href="/opportunities"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs shadow-lg shadow-purple-600/20 transition-all cursor-pointer"
+            <button
+              onClick={() => setViewMode(viewMode === "radar" ? "calendar" : "radar")}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs transition-all cursor-pointer"
             >
-              <Compass className="w-3.5 h-3.5" />
-              <span>Explore Opportunities</span>
-            </Link>
+              <CalendarDays className="w-3.5 h-3.5 text-emerald-400" />
+              <span>{viewMode === "radar" ? "Open Calendar" : "Open Radar"}</span>
+            </button>
 
             <Link
-              href="/dashboard/student"
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs transition-all"
+              href="/dashboard/student/saved"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs shadow-lg shadow-purple-600/20 transition-all cursor-pointer"
             >
-              <span>Student Cockpit</span>
-              <ArrowRight className="w-3.5 h-3.5 text-zinc-400" />
+              <Bookmark className="w-3.5 h-3.5" />
+              <span>My Opportunities</span>
             </Link>
           </div>
         </div>
 
         {/* ── KPI TELEMETRY STRIP ── */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-zinc-850">
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 pt-2 border-t border-zinc-850">
           <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1">
             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block flex items-center gap-1.5">
-              <Clock className="w-3 h-3 text-rose-400" /> Urgent (&lt;48h)
+              <Flame className="w-3 h-3 text-rose-400" /> Critical (Today)
             </span>
-            <div className="text-xl sm:text-2xl font-black font-mono text-rose-300">{counts.urgent}</div>
+            <div className="text-xl sm:text-2xl font-black font-mono text-rose-300">{counts.critical}</div>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1">
             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block flex items-center gap-1.5">
-              <Flame className="w-3 h-3 text-amber-400" /> Closing This Week
+              <Clock className="w-3 h-3 text-amber-400" /> Urgent (Tomorrow)
             </span>
-            <div className="text-xl sm:text-2xl font-black font-mono text-amber-300">{counts.soon}</div>
+            <div className="text-xl sm:text-2xl font-black font-mono text-amber-300">{counts.urgent}</div>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1">
             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block flex items-center gap-1.5">
-              <Bookmark className="w-3 h-3 text-indigo-400" /> Saved Pipeline
+              <Calendar className="w-3 h-3 text-sky-400" /> Upcoming (3–7d)
             </span>
-            <div className="text-xl sm:text-2xl font-black font-mono text-indigo-300">{counts.saved}</div>
+            <div className="text-xl sm:text-2xl font-black font-mono text-sky-300">{counts.upcoming}</div>
           </div>
 
           <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1">
             <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block flex items-center gap-1.5">
-              <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Registered
+              <CalendarDays className="w-3 h-3 text-indigo-400" /> Later (&gt;7d)
             </span>
-            <div className="text-xl sm:text-2xl font-black font-mono text-emerald-300">{counts.registered}</div>
+            <div className="text-xl sm:text-2xl font-black font-mono text-indigo-300">{counts.later}</div>
+          </div>
+
+          <div className="p-3.5 rounded-2xl bg-zinc-900/60 border border-zinc-800/80 space-y-1 col-span-2 sm:col-span-1">
+            <span className="text-[10px] font-mono text-zinc-500 uppercase tracking-wider block flex items-center gap-1.5">
+              <CheckCircle2 className="w-3 h-3 text-zinc-400" /> Closed / Past
+            </span>
+            <div className="text-xl sm:text-2xl font-black font-mono text-zinc-400">{counts.closed}</div>
           </div>
         </div>
       </motion.div>
@@ -393,17 +450,6 @@ export default function DeadlineRadarClient({
               <CalendarDays className="w-3.5 h-3.5 text-emerald-400" />
               <span>Month Calendar</span>
             </button>
-            <button
-              onClick={() => setViewMode("kanban")}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
-                viewMode === "kanban"
-                  ? "bg-zinc-850 text-white font-bold shadow"
-                  : "text-zinc-400 hover:text-zinc-200"
-              }`}
-            >
-              <Layers className="w-3.5 h-3.5 text-purple-400" />
-              <span>Tracking Pipeline</span>
-            </button>
           </div>
 
           {/* Sort By Selector */}
@@ -415,7 +461,7 @@ export default function DeadlineRadarClient({
               aria-label="Sort opportunities by"
               className="px-3 py-1.5 rounded-xl bg-zinc-900 border border-zinc-800 text-zinc-200 text-xs font-mono focus:outline-none focus:border-purple-500 cursor-pointer"
             >
-              <option value="priority">Top Priority (Urgency + Match)</option>
+              <option value="priority">Priority (Urgency + Match)</option>
               <option value="deadline">Soonest Deadline First</option>
               <option value="relevance">Highest Profile Match</option>
               <option value="newest">Recently Tracked</option>
@@ -441,15 +487,16 @@ export default function DeadlineRadarClient({
           <div className="flex items-center gap-2 flex-wrap">
             <select
               value={urgencyFilter}
-              onChange={(e) => setUrgencyFilter(e.target.value as UrgencyBand)}
+              onChange={(e) => setUrgencyFilter(e.target.value as UrgencyBandFilter)}
               aria-label="Filter by urgency"
               className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-mono text-zinc-300 focus:outline-none focus:border-purple-500"
             >
-              <option value="all">All Timelines</option>
-              <option value="urgent">Urgent (&lt;48h)</option>
-              <option value="soon">Closing This Week</option>
-              <option value="upcoming">Upcoming</option>
-              <option value="expired">Past / Expired</option>
+              <option value="all">All Urgency Bands</option>
+              <option value="critical">Critical (Today)</option>
+              <option value="urgent">Urgent (Tomorrow)</option>
+              <option value="upcoming">Upcoming (3–7d)</option>
+              <option value="later">Later (&gt;7d)</option>
+              <option value="closed">Closed / Expired</option>
             </select>
 
             {/* Tracking State Filter */}
@@ -459,9 +506,10 @@ export default function DeadlineRadarClient({
               aria-label="Filter by tracking status"
               className="px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs font-mono text-zinc-300 focus:outline-none focus:border-purple-500"
             >
-              <option value="all">All States</option>
-              <option value="saved">Saved Only</option>
-              <option value="registered">Registered Only</option>
+              <option value="all">All Statuses</option>
+              <option value="saved">Saved / Tracking</option>
+              <option value="applied">Applied</option>
+              <option value="completed">Completed</option>
             </select>
 
             {/* Category Filter */}
@@ -491,9 +539,9 @@ export default function DeadlineRadarClient({
             <Clock className="w-8 h-8 text-amber-400 animate-pulse" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-base sm:text-lg font-bold text-zinc-100 font-mono">Nothing on your radar yet</h2>
+            <h2 className="text-base sm:text-lg font-bold text-zinc-100 font-mono">No upcoming deadlines</h2>
             <p className="text-xs text-zinc-400 leading-relaxed font-light">
-              Bookmark interesting hackathons, workshops, internships, or campus competitions. Their closing deadlines and event schedules will automatically plot on this radar.
+              You&apos;re all caught up! Bookmark interesting hackathons, workshops, internships, or campus competitions to track their cutoffs here.
             </p>
           </div>
           <Link
@@ -501,7 +549,7 @@ export default function DeadlineRadarClient({
             className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs shadow-lg shadow-purple-600/25 transition-all cursor-pointer"
           >
             <Compass className="w-4 h-4" />
-            <span>Explore Campus Opportunities</span>
+            <span>Discover Opportunities</span>
           </Link>
         </div>
       ) : filteredItems.length === 0 ? (
@@ -511,9 +559,9 @@ export default function DeadlineRadarClient({
             <Filter className="w-5 h-5 text-purple-400" />
           </div>
           <div className="space-y-1">
-            <h3 className="text-sm font-bold text-zinc-200 font-mono">No Matching Tracked Items</h3>
+            <h3 className="text-sm font-bold text-zinc-200 font-mono">No Matching Deadlines</h3>
             <p className="text-xs text-zinc-500 font-mono">
-              Try adjusting your search query, urgency filter, or category selector.
+              Try adjusting your search query, urgency band, or category selector.
             </p>
           </div>
           <button
@@ -531,54 +579,76 @@ export default function DeadlineRadarClient({
       ) : (
         /* ── VIEW MODES ── */
         <div>
-          {/* VIEW 1: PRIORITY RADAR & BANDS */}
+          {/* VIEW 1: PRIORITY RADAR BY URGENCY BANDS */}
           {viewMode === "radar" && (
             <div className="space-y-8">
-              {/* URGENT BAND (<48h) */}
-              {bandGrouped.urgent.length > 0 && (
+              {/* CRITICAL BAND (TODAY / <24H) */}
+              {bandGrouped.critical.length > 0 && (
                 <RadarBandSection
-                  title="Imminent Attention (Closing < 48 Hours)"
-                  badgeText={`${bandGrouped.urgent.length} Critical`}
+                  title="CRITICAL — Deadline Today"
+                  badgeText={`${bandGrouped.critical.length} Critical`}
                   badgeClass="bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse"
                   glowClass="from-rose-950/30 via-zinc-950 to-zinc-950"
                   icon={Flame}
-                  items={bandGrouped.urgent}
+                  items={bandGrouped.critical}
+                  onAction={handleAction}
+                  updatingId={updatingId}
                 />
               )}
 
-              {/* SOON BAND (<7 days) */}
-              {bandGrouped.soon.length > 0 && (
+              {/* URGENT BAND (TOMORROW / <48H) */}
+              {bandGrouped.urgent.length > 0 && (
                 <RadarBandSection
-                  title="Approaching Milestones (Closing This Week)"
-                  badgeText={`${bandGrouped.soon.length} Soon`}
+                  title="URGENT — Deadline Tomorrow"
+                  badgeText={`${bandGrouped.urgent.length} Urgent`}
                   badgeClass="bg-amber-500/20 text-amber-300 border-amber-500/40"
                   glowClass="from-amber-950/20 via-zinc-950 to-zinc-950"
                   icon={Clock}
-                  items={bandGrouped.soon}
+                  items={bandGrouped.urgent}
+                  onAction={handleAction}
+                  updatingId={updatingId}
                 />
               )}
 
-              {/* UPCOMING BAND (>7 days) */}
+              {/* UPCOMING BAND (3–7 DAYS) */}
               {bandGrouped.upcoming.length > 0 && (
                 <RadarBandSection
-                  title="Upcoming Opportunity Horizons"
-                  badgeText={`${bandGrouped.upcoming.length} Scheduled`}
-                  badgeClass="bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
-                  glowClass="from-indigo-950/15 via-zinc-950 to-zinc-950"
+                  title="UPCOMING — Deadline Next Several Days"
+                  badgeText={`${bandGrouped.upcoming.length} Upcoming`}
+                  badgeClass="bg-sky-500/20 text-sky-300 border-sky-500/30"
+                  glowClass="from-sky-950/15 via-zinc-950 to-zinc-950"
                   icon={Calendar}
                   items={bandGrouped.upcoming}
+                  onAction={handleAction}
+                  updatingId={updatingId}
                 />
               )}
 
-              {/* EXPIRED BAND */}
-              {bandGrouped.expired.length > 0 && (
+              {/* LATER BAND (>7 DAYS) */}
+              {bandGrouped.later.length > 0 && (
                 <RadarBandSection
-                  title="Past / Closed Horizons"
-                  badgeText={`${bandGrouped.expired.length} Expired`}
+                  title="LATER — Future Deadlines"
+                  badgeText={`${bandGrouped.later.length} Scheduled`}
+                  badgeClass="bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                  glowClass="from-indigo-950/15 via-zinc-950 to-zinc-950"
+                  icon={CalendarDays}
+                  items={bandGrouped.later}
+                  onAction={handleAction}
+                  updatingId={updatingId}
+                />
+              )}
+
+              {/* CLOSED BAND */}
+              {bandGrouped.closed.length > 0 && (
+                <RadarBandSection
+                  title="CLOSED — Deadline Passed"
+                  badgeText={`${bandGrouped.closed.length} Closed`}
                   badgeClass="bg-zinc-800 text-zinc-500 border-zinc-700"
                   glowClass="from-zinc-900/40 to-zinc-950"
                   icon={CheckCircle2}
-                  items={bandGrouped.expired}
+                  items={bandGrouped.closed}
+                  onAction={handleAction}
+                  updatingId={updatingId}
                   isExpired
                 />
               )}
@@ -717,7 +787,7 @@ export default function DeadlineRadarClient({
                       ) : (
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           {(calendarEventMap.get(selectedCalendarDay) || []).map((item) => (
-                            <RadarOpportunityCard key={item.id} item={item} />
+                            <DeadlineCard key={item.id} item={item} onAction={handleAction} updatingId={updatingId} />
                           ))}
                         </div>
                       )}
@@ -727,87 +797,13 @@ export default function DeadlineRadarClient({
               </div>
             </div>
           )}
-
-          {/* VIEW 3: TRACKING KANBAN PIPELINE */}
-          {viewMode === "kanban" && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {/* Column 1: Saved Bookmarks */}
-              <div className="space-y-4 p-5 rounded-3xl bg-zinc-950/70 border border-zinc-850">
-                <div className="flex items-center justify-between pb-3 border-b border-zinc-850">
-                  <div className="flex items-center gap-2">
-                    <Bookmark className="w-4 h-4 text-indigo-400" />
-                    <h3 className="text-xs uppercase font-mono font-bold text-zinc-200">
-                      Saved Bookmarks
-                    </h3>
-                  </div>
-                  <span className="text-xs font-mono text-zinc-500">
-                    {filteredItems.filter((i) => i.trackingState === "saved").length}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {filteredItems
-                    .filter((i) => i.trackingState === "saved")
-                    .map((item) => (
-                      <RadarOpportunityCard key={item.id} item={item} compact />
-                    ))}
-                </div>
-              </div>
-
-              {/* Column 2: Registered / In Progress */}
-              <div className="space-y-4 p-5 rounded-3xl bg-zinc-950/70 border border-zinc-850">
-                <div className="flex items-center justify-between pb-3 border-b border-zinc-850">
-                  <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    <h3 className="text-xs uppercase font-mono font-bold text-zinc-200">
-                      Official Applications
-                    </h3>
-                  </div>
-                  <span className="text-xs font-mono text-zinc-500">
-                    {filteredItems.filter((i) => i.trackingState === "registered").length}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {filteredItems
-                    .filter((i) => i.trackingState === "registered")
-                    .map((item) => (
-                      <RadarOpportunityCard key={item.id} item={item} compact />
-                    ))}
-                </div>
-              </div>
-
-              {/* Column 3: Completed / Attended */}
-              <div className="space-y-4 p-5 rounded-3xl bg-zinc-950/70 border border-zinc-850">
-                <div className="flex items-center justify-between pb-3 border-b border-zinc-850">
-                  <div className="flex items-center gap-2">
-                    <Check className="w-4 h-4 text-purple-400" />
-                    <h3 className="text-xs uppercase font-mono font-bold text-zinc-200">
-                      Attended / Completed
-                    </h3>
-                  </div>
-                  <span className="text-xs font-mono text-zinc-500">
-                    {filteredItems.filter((i) => i.trackingState === "attended").length}
-                  </span>
-                </div>
-
-                <div className="space-y-3">
-                  {filteredItems
-                    .filter((i) => i.trackingState === "attended")
-                    .map((item) => (
-                      <RadarOpportunityCard key={item.id} item={item} compact />
-                    ))}
-                </div>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </motion.div>
   );
 }
 
-/* ──────────────── BAND SECTION COMPONENT ──────────────── */
+/* ──────────────── RADAR BAND SECTION COMPONENT ──────────────── */
 function RadarBandSection({
   title,
   badgeText,
@@ -815,6 +811,8 @@ function RadarBandSection({
   glowClass,
   icon: Icon,
   items,
+  onAction,
+  updatingId,
   isExpired = false,
 }: {
   title: string;
@@ -823,6 +821,8 @@ function RadarBandSection({
   glowClass: string;
   icon: React.ElementType;
   items: ProcessedRadarItem[];
+  onAction: (item: ProcessedRadarItem, targetState: StudentLifecycleState) => void;
+  updatingId: string | null;
   isExpired?: boolean;
 }) {
   return (
@@ -841,45 +841,53 @@ function RadarBandSection({
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {items.map((item) => (
-          <RadarOpportunityCard key={item.id} item={item} isExpired={isExpired} />
+          <DeadlineCard
+            key={item.id}
+            item={item}
+            isExpired={isExpired}
+            onAction={onAction}
+            updatingId={updatingId}
+          />
         ))}
       </div>
     </div>
   );
 }
 
-/* ──────────────── RADAR OPPORTUNITY CARD COMPONENT ──────────────── */
-function RadarOpportunityCard({
+/* ──────────────── STANDARDIZED DEADLINE CARD COMPONENT ──────────────── */
+function DeadlineCard({
   item,
   isExpired = false,
-  compact = false,
+  onAction,
+  updatingId,
 }: {
   item: ProcessedRadarItem;
   isExpired?: boolean;
-  compact?: boolean;
+  onAction: (item: ProcessedRadarItem, targetState: StudentLifecycleState) => void;
+  updatingId: string | null;
 }) {
-  const isUrgent = item.urgencyBand === "urgent";
-  const isSoon = item.urgencyBand === "soon";
+  const isCritical = item.urgency.isCritical;
+  const isUrgent = item.urgencyLevel === "urgent";
 
   return (
-    <SpatialCard3D depth={compact ? 4 : 8} elevationZ={compact ? 8 : 12}>
+    <SpatialCard3D depth={8} elevationZ={12}>
       <div
         className={`p-5 rounded-2xl border transition-all duration-300 flex flex-col justify-between space-y-4 relative overflow-hidden h-full ${
-          isUrgent && !isExpired
+          isCritical && !isExpired
             ? "bg-zinc-950/90 border-rose-500/35 shadow-lg shadow-rose-500/5 hover:border-rose-500/50"
-            : isSoon && !isExpired
+            : isUrgent && !isExpired
             ? "bg-zinc-950/90 border-amber-500/30 shadow-md hover:border-amber-500/45"
             : isExpired
             ? "bg-zinc-950/50 border-zinc-850 opacity-60 hover:opacity-80"
             : "bg-zinc-950/80 border-zinc-800/80 hover:border-zinc-700"
         }`}
       >
-        {/* Top Priority Top Stripe Indicator */}
+        {/* Urgency Top Accent Stripe */}
         <div
           className={`absolute top-0 left-0 right-0 h-1 ${
-            isUrgent && !isExpired
+            isCritical && !isExpired
               ? "bg-rose-500"
-              : isSoon && !isExpired
+              : isUrgent && !isExpired
               ? "bg-amber-400"
               : isExpired
               ? "bg-zinc-800"
@@ -888,25 +896,25 @@ function RadarOpportunityCard({
         />
 
         <div className="space-y-3 pt-1">
-          {/* Urgency Pill + Match Score */}
+          {/* Top Pill Row: Urgency Countdown + Match Score */}
           <div className="flex items-center justify-between gap-2 flex-wrap text-[10px] font-mono">
             <span
               className={`px-2.5 py-0.5 rounded-full border font-bold flex items-center gap-1.5 ${
-                isUrgent && !isExpired
+                isCritical && !isExpired
                   ? "bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse"
-                  : isSoon && !isExpired
+                  : isUrgent && !isExpired
                   ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
                   : isExpired
                   ? "bg-zinc-850 text-zinc-500 border-zinc-750"
                   : "bg-zinc-850 text-zinc-300 border-zinc-750"
               }`}
             >
-              {isUrgent && !isExpired ? (
+              {isCritical && !isExpired ? (
                 <Flame className="w-3 h-3 text-rose-400" />
               ) : (
                 <Clock className="w-3 h-3 text-amber-400" />
               )}
-              <span>{item.remainingText}</span>
+              <span>{item.urgency.countdownText}</span>
             </span>
 
             {/* Profile Match Score Tag */}
@@ -915,7 +923,7 @@ function RadarOpportunityCard({
             </span>
           </div>
 
-          {/* Title & Organization */}
+          {/* Title & Organizer */}
           <div className="space-y-1">
             <Link href={`/opportunities/${item.slug}`}>
               <h3 className="text-sm font-bold text-zinc-100 hover:text-purple-400 transition-colors line-clamp-2 leading-snug">
@@ -926,51 +934,74 @@ function RadarOpportunityCard({
             <div className="flex items-center gap-1.5 text-xs text-zinc-400 truncate">
               <Building2 className="w-3 h-3 text-zinc-500 shrink-0" />
               <span className="truncate">{item.club?.name || "SRM Organization"}</span>
+              {item.club?.verificationStatus === "verified" && (
+                <VerificationBadge status="verified" size="sm" />
+              )}
             </div>
           </div>
 
-          {/* Skill Tag Pills */}
-          {!compact && item.requiredSkills && item.requiredSkills.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {item.requiredSkills.slice(0, 3).map((skill) => {
-                const isMatched = item.relevance.matchedSkills.includes(skill);
-                return (
-                  <span
-                    key={skill}
-                    className={`text-[9px] font-mono px-2 py-0.5 rounded-md border ${
-                      isMatched
-                        ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30 font-semibold"
-                        : "bg-zinc-900 text-zinc-400 border-zinc-800"
-                    }`}
-                  >
-                    {skill}
-                  </span>
-                );
-              })}
-              {item.requiredSkills.length > 3 && (
-                <span className="text-[9px] font-mono text-zinc-500 self-center">
-                  +{item.requiredSkills.length - 3}
-                </span>
-              )}
-            </div>
-          )}
+          {/* Deadline Date Display */}
+          <div className="p-2.5 rounded-xl bg-zinc-900/60 border border-zinc-850/80 flex items-center justify-between text-[11px] font-mono">
+            <span className="text-zinc-500 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-zinc-400" /> Deadline:
+            </span>
+            <span className={`font-bold ${isExpired ? "text-zinc-500 line-through" : "text-zinc-200"}`}>
+              {item.urgency.formattedDeadline}
+            </span>
+          </div>
+
+          {/* Status Badge */}
+          <div className="flex items-center justify-between text-xs font-mono pt-1">
+            <span className="text-[10px] text-zinc-500">Status:</span>
+            <span
+              className={`text-[10px] font-bold px-2 py-0.5 rounded-md border ${
+                item.trackingState === "completed"
+                  ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/30"
+                  : item.trackingState === "applied"
+                  ? "bg-indigo-500/10 text-indigo-300 border-indigo-500/30"
+                  : item.trackingState === "closed"
+                  ? "bg-zinc-900 text-zinc-500 border-zinc-800"
+                  : "bg-purple-500/10 text-purple-300 border-purple-500/25"
+              }`}
+            >
+              {item.statusText}
+            </span>
+          </div>
         </div>
 
-        {/* Card Footer: State Tag + Quick CTAs */}
+        {/* Card Footer: Primary Actions */}
         <div className="flex items-center justify-between pt-3 border-t border-zinc-850/80 text-xs font-mono gap-2">
-          <div className="flex items-center gap-1.5">
-            {item.trackingState === "registered" || item.trackingState === "attended" ? (
+          {/* Quick Action Button */}
+          <div>
+            {item.trackingState === "saved" || item.trackingState === "tracking" ? (
+              <button
+                disabled={updatingId === item.id || isExpired}
+                onClick={() => onAction(item, "registered")}
+                className="px-2.5 py-1 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/40 text-indigo-300 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <CheckCircle2 className="w-3 h-3 text-indigo-400" />
+                <span>Apply</span>
+              </button>
+            ) : item.trackingState === "applied" ? (
+              <button
+                disabled={updatingId === item.id}
+                onClick={() => onAction(item, "attended")}
+                className="px-2.5 py-1 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 border border-emerald-500/40 text-emerald-300 font-semibold text-[10px] flex items-center gap-1 transition-all cursor-pointer disabled:opacity-50"
+              >
+                <Award className="w-3 h-3 text-emerald-400" />
+                <span>Mark Completed</span>
+              </button>
+            ) : item.trackingState === "completed" ? (
               <span className="text-[10px] text-emerald-400 font-bold flex items-center gap-1">
-                <CheckCircle2 className="w-3.5 h-3.5" /> Registered
+                <Check className="w-3 h-3" /> Done
               </span>
             ) : (
-              <span className="text-[10px] text-indigo-400 font-bold flex items-center gap-1">
-                <Bookmark className="w-3.5 h-3.5" /> Bookmarked
-              </span>
+              <span className="text-[10px] text-zinc-500">Passed</span>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
+          {/* Primary CTAs */}
+          <div className="flex items-center gap-1.5">
             <BookmarkButton opportunityId={item.id} />
             <Link
               href={`/opportunities/${item.slug}`}
