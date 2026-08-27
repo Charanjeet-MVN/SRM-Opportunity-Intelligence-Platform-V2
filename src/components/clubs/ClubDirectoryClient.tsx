@@ -4,8 +4,8 @@ import React, { useState, useMemo } from "react";
 import { PublicClubRecord } from "@/lib/clubs/actions";
 import ClubDirectoryHero from "./ClubDirectoryHero";
 import ClubCard3D from "./ClubCard3D";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { Building2, RefreshCw, Compass } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
+import { Building2, RefreshCw } from "lucide-react";
 import Link from "next/link";
 
 interface ClubDirectoryClientProps {

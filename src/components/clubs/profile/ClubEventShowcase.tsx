@@ -8,7 +8,7 @@ import {
   Calendar,
   Compass,
 } from "lucide-react";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import Link from "next/link";
 
 interface ClubEventShowcaseProps {
@@ -23,10 +23,9 @@ export default function ClubEventShowcase({
   const shouldReduceMotion = useReducedMotion();
   const [activeTab, setActiveTab] = useState<string>("all");
 
-  const now = new Date();
-
   // Tab definitions with dynamic counts
   const tabs = useMemo(() => {
+    const now = new Date();
     const activeCount = opportunities.filter((opp) => {
       if (!opp.applicationDeadline) return true;
       return new Date(opp.applicationDeadline) >= now;
@@ -53,10 +52,11 @@ export default function ClubEventShowcase({
     ];
 
     return list.filter((t) => t.id === "all" || t.count > 0);
-  }, [opportunities, now]);
+  }, [opportunities]);
 
   // Filter opportunities based on active tab
   const filtered = useMemo(() => {
+    const now = new Date();
     return opportunities.filter((opp) => {
       if (activeTab === "all") return true;
 
@@ -71,7 +71,7 @@ export default function ClubEventShowcase({
 
       return true;
     });
-  }, [opportunities, activeTab, now]);
+  }, [opportunities, activeTab]);
 
   const containerVariants = {
     hidden: { opacity: 0 },

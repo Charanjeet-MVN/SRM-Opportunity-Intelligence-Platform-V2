@@ -10,7 +10,6 @@ import {
   ShieldCheck,
   Share2,
   Check,
-  Building2,
 } from "lucide-react";
 
 interface ClubProfileHeroProps {
