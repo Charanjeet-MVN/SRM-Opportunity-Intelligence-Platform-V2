@@ -428,14 +428,103 @@ export async function updateOpportunityTrackerColumnAction(
     revalidatePath("/dashboard/student/saved");
     revalidatePath("/opportunities");
 
+export type StudentLifecycleState = "saved" | "tracking" | "registered" | "attended" | "withdrawn" | "unsaved";
+
+/**
+ * Server Action: Updates the real lifecycle state of an opportunity for the active student in Supabase
+ */
+export async function updateOpportunityLifecycleStateAction(
+  opportunityId: string,
+  targetState: StudentLifecycleState
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) return { success: false, error: "Authentication required" };
+
+  try {
+    if (targetState === "unsaved") {
+      // Remove bookmark
+      await supabase
+        .from("saved_opportunities")
+        .delete()
+        .eq("user_id", user.id)
+        .eq("opportunity_id", opportunityId);
+    } else if (targetState === "saved" || targetState === "tracking") {
+      // Ensure bookmarked
+      await supabase
+        .from("saved_opportunities")
+        .upsert(
+          {
+            user_id: user.id,
+            opportunity_id: opportunityId,
+          },
+          { onConflict: "user_id,opportunity_id" }
+        );
+    } else if (targetState === "registered") {
+      // Ensure bookmarked & registered
+      await supabase
+        .from("saved_opportunities")
+        .upsert(
+          {
+            user_id: user.id,
+            opportunity_id: opportunityId,
+          },
+          { onConflict: "user_id,opportunity_id" }
+        );
+
+      await supabase
+        .from("registrations")
+        .upsert(
+          {
+            user_id: user.id,
+            opportunity_id: opportunityId,
+            status: "registered",
+            registered_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,opportunity_id" }
+        );
+    } else if (targetState === "attended") {
+      // Mark attended / completed
+      await supabase
+        .from("saved_opportunities")
+        .upsert(
+          {
+            user_id: user.id,
+            opportunity_id: opportunityId,
+          },
+          { onConflict: "user_id,opportunity_id" }
+        );
+
+      await supabase
+        .from("registrations")
+        .upsert(
+          {
+            user_id: user.id,
+            opportunity_id: opportunityId,
+            status: "attended",
+            registered_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id,opportunity_id" }
+        );
+    } else if (targetState === "withdrawn") {
+      await supabase
+        .from("registrations")
+        .update({ status: "withdrawn" })
+        .eq("user_id", user.id)
+        .eq("opportunity_id", opportunityId);
+    }
+
+    revalidatePath("/dashboard/student/saved");
+    revalidatePath("/dashboard/student/registrations");
+    revalidatePath("/dashboard/student/calendar");
+    revalidatePath("/dashboard/student");
+    revalidatePath("/opportunities");
+
     return { success: true };
   } catch (err: unknown) {
-    const errorObj = err as { message?: string; code?: string };
-    if (errorObj.message?.includes("Could not find the table") || errorObj.code === "PGRST205") {
-      console.warn("Database not configured. Bypassing database upsert and relying on LocalStorage.");
-      return { success: true };
-    }
-    return { success: false, error: errorObj.message || "Failed to update tracker column" };
+    const errorObj = err as { message?: string };
+    return { success: false, error: errorObj.message || "Failed to update lifecycle state" };
   }
 }
 
