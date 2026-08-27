@@ -11,7 +11,6 @@ import {
   ArrowRight,
   Calendar,
   Flame,
-  Building2,
 } from "lucide-react";
 import { getDeadlineUrgency } from "@/lib/notifications/urgency";
 
@@ -160,7 +159,7 @@ export default function UpcomingDeadlinesTimeline({
                         {item.club?.name || "SRM Organization"}
                       </span>
                       {item.club?.verificationStatus === "verified" && (
-                        <VerificationBadge status="verified" size="sm" />
+                        <VerificationBadge status="verified" />
                       )}
                     </p>
                   </div>

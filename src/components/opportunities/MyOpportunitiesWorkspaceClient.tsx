@@ -612,7 +612,7 @@ export default function MyOpportunitiesWorkspaceClient({
                       <div className="flex items-center gap-2">
                         <OpportunityTypeBadge type={item.type} />
                         {item.club?.verificationStatus === "verified" && (
-                          <VerificationBadge status="verified" size="sm" />
+                          <VerificationBadge status="verified" />
                         )}
                       </div>
 

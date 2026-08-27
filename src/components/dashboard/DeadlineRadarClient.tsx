@@ -9,7 +9,6 @@ import { calculateOpportunityRelevance, RelevanceScoreResult } from "@/lib/relev
 import { getDeadlineUrgency, UrgencyLevel, DeadlineUrgencyResult } from "@/lib/notifications/urgency";
 import { updateOpportunityLifecycleStateAction, StudentLifecycleState } from "@/lib/engagement/actions";
 import BookmarkButton from "@/components/opportunities/BookmarkButton";
-import OpportunityTypeBadge from "@/components/opportunities/OpportunityTypeBadge";
 import VerificationBadge from "@/components/clubs/VerificationBadge";
 import SpatialCard3D from "@/components/3d/SpatialCard3D";
 import {
@@ -19,10 +18,8 @@ import {
   Flame,
   Search,
   Filter,
-  ArrowRight,
   ChevronRight,
   ChevronLeft,
-  Layers,
   Compass,
   Bookmark,
   CalendarDays,
@@ -935,7 +932,7 @@ function DeadlineCard({
               <Building2 className="w-3 h-3 text-zinc-500 shrink-0" />
               <span className="truncate">{item.club?.name || "SRM Organization"}</span>
               {item.club?.verificationStatus === "verified" && (
-                <VerificationBadge status="verified" size="sm" />
+                <VerificationBadge status="verified" />
               )}
             </div>
           </div>
