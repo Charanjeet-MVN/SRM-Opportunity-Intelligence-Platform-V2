@@ -747,5 +747,286 @@ function getMockRegisteredOpportunities() {
   ];
 }
 
+/**
+ * Activity timeline types and server actions for Activity 2.0
+ */
+export type StudentActivityType = "saved" | "applied" | "registered" | "completed" | "joined_club";
+export type ActivityDateBucket = "today" | "yesterday" | "this_week" | "earlier_this_month" | "past";
 
+export interface StudentActivityTimelineItem {
+  id: string;
+  title: string;
+  type: StudentActivityType;
+  category: string;
+  organizer: string;
+  organizerSlug?: string;
+  opportunitySlug?: string;
+  timestamp: string;
+  relativeTime: string;
+  dateBucket: ActivityDateBucket;
+  description: string;
+  statusBadgeText: string;
+  actionUrl: string;
+  actionLabel: string;
+  metadata?: {
+    deadlineDate?: string;
+    eventDate?: string;
+    notes?: string;
+  };
+}
 
+function calculateDateBucketAndRelative(dateStr: string): {
+  bucket: ActivityDateBucket;
+  relativeTime: string;
+} {
+  const now = new Date();
+  const date = new Date(dateStr);
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+  const timeFormatted = date.toLocaleTimeString("en-US", {
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  const isToday =
+    date.getDate() === now.getDate() &&
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  if (isToday) {
+    if (diffHours <= 0) {
+      return { bucket: "today", relativeTime: "Just now" };
+    } else if (diffHours === 1) {
+      return { bucket: "today", relativeTime: "1 hour ago" };
+    } else {
+      return { bucket: "today", relativeTime: `${diffHours} hours ago` };
+    }
+  }
+
+  const yesterday = new Date(now);
+  yesterday.setDate(now.getDate() - 1);
+  const isYesterday =
+    date.getDate() === yesterday.getDate() &&
+    date.getMonth() === yesterday.getMonth() &&
+    date.getFullYear() === yesterday.getFullYear();
+
+  if (isYesterday) {
+    return { bucket: "yesterday", relativeTime: `Yesterday at ${timeFormatted}` };
+  }
+
+  if (diffDays <= 7) {
+    return {
+      bucket: "this_week",
+      relativeTime: `${diffDays} days ago`,
+    };
+  }
+
+  const isThisMonth =
+    date.getMonth() === now.getMonth() &&
+    date.getFullYear() === now.getFullYear();
+
+  const formattedMonthDay = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+  });
+
+  if (isThisMonth) {
+    return {
+      bucket: "earlier_this_month",
+      relativeTime: `${formattedMonthDay} at ${timeFormatted}`,
+    };
+  }
+
+  const formattedFull = date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+
+  return {
+    bucket: "past",
+    relativeTime: formattedFull,
+  };
+}
+
+/**
+ * Fetches real, chronological activity stream for authenticated student
+ */
+export async function getStudentActivityTimelineAction(): Promise<{
+  activities: StudentActivityTimelineItem[];
+  error?: string;
+}> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  if (!user) {
+    return { activities: [], error: "Not authenticated" };
+  }
+
+  const activities: StudentActivityTimelineItem[] = [];
+
+  // 1. Fetch real Saved Opportunities
+  const { data: savedData, error: savedError } = await supabase
+    .from("saved_opportunities")
+    .select(`
+      id,
+      created_at,
+      opportunities (
+        id,
+        title,
+        slug,
+        type,
+        application_deadline,
+        event_start_date,
+        clubs ( name, slug )
+      )
+    `)
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  if (!savedError && savedData) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    savedData.forEach((item: any) => {
+      const opp = item.opportunities;
+      if (!opp) return;
+
+      const { bucket, relativeTime } = calculateDateBucketAndRelative(item.created_at);
+      const clubName = opp.clubs?.name || "SRM Organization";
+
+      activities.push({
+        id: `act-save-${item.id}`,
+        title: `Saved "${opp.title}"`,
+        type: "saved",
+        category: opp.type || "opportunity",
+        organizer: clubName,
+        organizerSlug: opp.clubs?.slug,
+        opportunitySlug: opp.slug,
+        timestamp: item.created_at,
+        relativeTime,
+        dateBucket: bucket,
+        description: `Added to your personal radar for deadline tracking and application preparation.`,
+        statusBadgeText: "Saved to Radar",
+        actionUrl: `/opportunities/${opp.slug}`,
+        actionLabel: "View Opportunity",
+        metadata: {
+          deadlineDate: opp.application_deadline,
+          eventDate: opp.event_start_date,
+        },
+      });
+    });
+  }
+
+  // 2. Fetch real Registrations & Lifecycle Stages
+  const { data: regData, error: regError } = await supabase
+    .from("registrations")
+    .select(`
+      id,
+      registered_at,
+      status,
+      notes,
+      opportunities (
+        id,
+        title,
+        slug,
+        type,
+        application_deadline,
+        event_start_date,
+        clubs ( name, slug )
+      )
+    `)
+    .eq("user_id", user.id)
+    .order("registered_at", { ascending: false });
+
+  if (!regError && regData) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    regData.forEach((item: any) => {
+      const opp = item.opportunities;
+      if (!opp) return;
+
+      const regTime = item.registered_at || new Date().toISOString();
+      const { bucket, relativeTime } = calculateDateBucketAndRelative(regTime);
+      const clubName = opp.clubs?.name || "SRM Organization";
+
+      const isCompleted = item.status === "attended";
+      const isApplied = item.status === "registered" || !item.status;
+      const stageName = item.notes || (isCompleted ? "Completed" : "Applied");
+
+      const activityType: StudentActivityType = isCompleted
+        ? "completed"
+        : item.notes === "Applied"
+        ? "applied"
+        : "registered";
+
+      activities.push({
+        id: `act-reg-${item.id}`,
+        title: isCompleted
+          ? `Completed "${opp.title}"`
+          : `Applied to "${opp.title}"`,
+        type: activityType,
+        category: opp.type || "opportunity",
+        organizer: clubName,
+        organizerSlug: opp.clubs?.slug,
+        opportunitySlug: opp.slug,
+        timestamp: regTime,
+        relativeTime,
+        dateBucket: bucket,
+        description: isCompleted
+          ? `Attended and completed event participation. Verification verified on SOIP.`
+          : `Submitted registration for ${opp.title} hosted by ${clubName} (Stage: ${stageName}).`,
+        statusBadgeText: isCompleted ? "Completed" : `Registered • ${stageName}`,
+        actionUrl: `/opportunities/${opp.slug}`,
+        actionLabel: "View Opportunity",
+        metadata: {
+          deadlineDate: opp.application_deadline,
+          eventDate: opp.event_start_date,
+          notes: item.notes,
+        },
+      });
+    });
+  }
+
+  // 3. Fetch Club Memberships
+  const { data: memberData } = await supabase
+    .from("club_members")
+    .select(`
+      id,
+      role,
+      created_at,
+      clubs ( id, name, slug )
+    `)
+    .eq("user_id", user.id);
+
+  if (memberData) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    memberData.forEach((item: any) => {
+      const club = item.clubs;
+      if (!club) return;
+
+      const { bucket, relativeTime } = calculateDateBucketAndRelative(item.created_at);
+
+      activities.push({
+        id: `act-club-${item.id}`,
+        title: `Joined ${club.name}`,
+        type: "joined_club",
+        category: "club",
+        organizer: club.name,
+        organizerSlug: club.slug,
+        timestamp: item.created_at,
+        relativeTime,
+        dateBucket: bucket,
+        description: `Became an active ${item.role?.replace("_", " ") || "member"} of ${club.name}.`,
+        statusBadgeText: `Member (${item.role || "member"})`,
+        actionUrl: `/clubs/${club.slug || ""}`,
+        actionLabel: "View Organization",
+      });
+    });
+  }
+
+  // Sort activities chronologically (newest first)
+  activities.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+  return { activities };
+}
