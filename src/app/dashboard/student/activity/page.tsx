@@ -7,11 +7,10 @@ export const metadata = {
   description: "Authentic chronological history of your saved opportunities, registrations, applications, and campus milestones.",
 };
 
-export default async function CampusFeedPage() {
+export default async function StudentActivityPage() {
   const { activities } = await getStudentActivityTimelineAction();
 
   return (
     <StudentActivityWorkspaceClient initialActivities={activities || []} />
   );
 }
-

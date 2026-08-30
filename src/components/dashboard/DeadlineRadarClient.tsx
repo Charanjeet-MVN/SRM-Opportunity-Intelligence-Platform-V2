@@ -28,6 +28,8 @@ import {
   Zap,
   Award,
   AlertCircle,
+  ListFilter,
+  CalendarRange,
 } from "lucide-react";
 
 export interface TimelineMilestone {
@@ -40,7 +42,7 @@ export interface TimelineMilestone {
   opportunityType: string;
 }
 
-type ViewMode = "radar" | "calendar";
+export type CalendarViewMode = "agenda" | "month" | "week" | "radar";
 type UrgencyBandFilter = "all" | "critical" | "urgent" | "upcoming" | "later" | "closed";
 type TrackingFilter = "all" | "saved" | "applied" | "completed";
 
@@ -58,15 +60,17 @@ interface DeadlineRadarClientProps {
   registeredOpportunities: TrackerOpportunity[];
   timelineEvents?: TimelineMilestone[];
   studentProfile: StudentProfile | null;
+  initialViewMode?: CalendarViewMode;
 }
 
 export default function DeadlineRadarClient({
   savedOpportunities,
   registeredOpportunities,
   studentProfile,
+  initialViewMode = "agenda",
 }: DeadlineRadarClientProps) {
   const shouldReduceMotion = useReducedMotion();
-  const [viewMode, setViewMode] = useState<ViewMode>("radar");
+  const [viewMode, setViewMode] = useState<CalendarViewMode>(initialViewMode);
   const [urgencyFilter, setUrgencyFilter] = useState<UrgencyBandFilter>("all");
   const [trackingFilter, setTrackingFilter] = useState<TrackingFilter>("all");
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -75,7 +79,7 @@ export default function DeadlineRadarClient({
   const [updatingId, setUpdatingId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
 
-  // Month Calendar specific state
+  // Month & Week Calendar state
   const [calendarDate, setCalendarDate] = useState(new Date());
   const [selectedCalendarDay, setSelectedCalendarDay] = useState<string | null>(null);
 
@@ -131,8 +135,6 @@ export default function DeadlineRadarClient({
       else if (trackingState === "closed") statusText = "Closed";
 
       // Deterministic Priority Score (0 - 100):
-      // Urgency Weight: 60 pts max (Critical = 60, Urgent = 50, Upcoming = 35, Later = 15, Expired = 0)
-      // Relevance Weight: 40 pts max (relevanceScore / 100 * 40)
       let urgencyPts = 15;
       if (urgency.urgencyLevel === "expired") urgencyPts = 0;
       else if (urgency.urgencyLevel === "critical") urgencyPts = 60;
@@ -243,7 +245,7 @@ export default function DeadlineRadarClient({
     };
   }, [filteredItems]);
 
-  // Calendar date mapping
+  // Calendar date mapping (YYYY-MM-DD -> items)
   const calendarEventMap = useMemo(() => {
     const map = new Map<string, ProcessedRadarItem[]>();
     processedItems.forEach((item) => {
@@ -266,6 +268,33 @@ export default function DeadlineRadarClient({
     });
     return map;
   }, [processedItems]);
+
+  // Active week calculation
+  const weekDays = useMemo(() => {
+    const curr = new Date(calendarDate);
+    const first = curr.getDate() - curr.getDay(); // First day is the day of the month - the day of the week
+    const days: { date: Date; dateKey: string; isToday: boolean; items: ProcessedRadarItem[] }[] = [];
+
+    const now = new Date();
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(curr.setDate(first + i));
+      const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+      const isToday =
+        d.getDate() === now.getDate() &&
+        d.getMonth() === now.getMonth() &&
+        d.getFullYear() === now.getFullYear();
+
+      days.push({
+        date: d,
+        dateKey: key,
+        isToday,
+        items: calendarEventMap.get(key) || [],
+      });
+    }
+
+    return days;
+  }, [calendarDate, calendarEventMap]);
 
   const handleAction = async (item: ProcessedRadarItem, targetState: StudentLifecycleState) => {
     setUpdatingId(item.id);
@@ -325,7 +354,7 @@ export default function DeadlineRadarClient({
         )}
       </AnimatePresence>
 
-      {/* ── HEADER BANNER: DEADLINE RADAR ── */}
+      {/* ── HEADER BANNER: CALENDAR 2.0 ── */}
       <motion.div
         variants={itemVariants}
         className="relative overflow-hidden rounded-3xl border border-zinc-800/80 bg-zinc-950/80 p-6 sm:p-8 space-y-6 shadow-2xl backdrop-blur-2xl"
@@ -339,10 +368,10 @@ export default function DeadlineRadarClient({
               <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono bg-zinc-900 border border-zinc-800 text-zinc-300">
                 <Clock className="w-3.5 h-3.5 text-amber-400" />
                 <span className="text-amber-400 font-bold uppercase tracking-wider text-[10px]">
-                  Deadline Radar
+                  Calendar 2.0
                 </span>
                 <span className="text-zinc-700">•</span>
-                <span className="text-zinc-400 text-[10px]">Urgency Intelligence</span>
+                <span className="text-zinc-400 text-[10px]">Deadline & Event Action Hub</span>
               </div>
 
               {(counts.critical > 0 || counts.urgent > 0) && (
@@ -354,29 +383,29 @@ export default function DeadlineRadarClient({
             </div>
 
             <h1 className="text-2xl sm:text-4xl font-black tracking-tight text-white">
-              What do I need to act on soon?
+              When do I need to act?
             </h1>
 
             <p className="text-xs sm:text-sm text-zinc-400 font-light leading-relaxed max-w-2xl">
-              Deterministic radar ranking upcoming closing deadlines, application cutoffs, and scheduled milestones across your tracked opportunities.
+              Real-time opportunity schedule tracking upcoming closing cutoffs, registration windows, and scheduled hackathons and workshops across your commitments.
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-3 shrink-0">
-            <button
-              onClick={() => setViewMode(viewMode === "radar" ? "calendar" : "radar")}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs transition-all cursor-pointer"
-            >
-              <CalendarDays className="w-3.5 h-3.5 text-emerald-400" />
-              <span>{viewMode === "radar" ? "Open Calendar" : "Open Radar"}</span>
-            </button>
-
             <Link
               href="/dashboard/student/saved"
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-medium text-xs shadow-lg shadow-purple-600/20 transition-all cursor-pointer"
             >
               <Bookmark className="w-3.5 h-3.5" />
               <span>My Opportunities</span>
+            </Link>
+
+            <Link
+              href="/opportunities"
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-200 font-medium text-xs transition-all cursor-pointer"
+            >
+              <Compass className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Discover</span>
             </Link>
           </div>
         </div>
@@ -420,32 +449,54 @@ export default function DeadlineRadarClient({
         </div>
       </motion.div>
 
-      {/* ── CONTROLS: VIEW SWITCHER + SEARCH + FILTERS ── */}
+      {/* ── CONTROLS: VIEW SWITCHER (Agenda / Month / Week / Radar) + SEARCH + FILTERS ── */}
       <div className="space-y-4">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           {/* View Mode Toggle */}
-          <div className="flex items-center p-1 rounded-2xl bg-zinc-950 border border-zinc-850 text-xs font-mono">
+          <div className="flex items-center p-1 rounded-2xl bg-zinc-950 border border-zinc-850 text-xs font-mono overflow-x-auto scrollbar-none">
             <button
-              onClick={() => setViewMode("radar")}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
-                viewMode === "radar"
+              onClick={() => setViewMode("agenda")}
+              className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                viewMode === "agenda"
                   ? "bg-zinc-850 text-white font-bold shadow"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
-              <Zap className="w-3.5 h-3.5 text-amber-400" />
-              <span>Priority Radar</span>
+              <ListFilter className="w-3.5 h-3.5 text-amber-400" />
+              <span>Agenda Stream</span>
             </button>
             <button
-              onClick={() => setViewMode("calendar")}
-              className={`px-4 py-2 rounded-xl flex items-center gap-2 cursor-pointer transition-all ${
-                viewMode === "calendar"
+              onClick={() => setViewMode("month")}
+              className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                viewMode === "month"
                   ? "bg-zinc-850 text-white font-bold shadow"
                   : "text-zinc-400 hover:text-zinc-200"
               }`}
             >
               <CalendarDays className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Month Calendar</span>
+              <span>Month Matrix</span>
+            </button>
+            <button
+              onClick={() => setViewMode("week")}
+              className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                viewMode === "week"
+                  ? "bg-zinc-850 text-white font-bold shadow"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <CalendarRange className="w-3.5 h-3.5 text-sky-400" />
+              <span>Week Strip</span>
+            </button>
+            <button
+              onClick={() => setViewMode("radar")}
+              className={`px-3.5 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all whitespace-nowrap ${
+                viewMode === "radar"
+                  ? "bg-zinc-850 text-white font-bold shadow"
+                  : "text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Zap className="w-3.5 h-3.5 text-purple-400" />
+              <span>Priority Radar</span>
             </button>
           </div>
 
@@ -473,7 +524,7 @@ export default function DeadlineRadarClient({
             <Search className="w-4 h-4 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
             <input
               type="text"
-              placeholder="Search tracked opportunities by title, club, or skills..."
+              placeholder="Search deadlines by title, club, or required skills..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full pl-10 pr-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-xs text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-purple-500 font-mono"
@@ -576,7 +627,357 @@ export default function DeadlineRadarClient({
       ) : (
         /* ── VIEW MODES ── */
         <div>
-          {/* VIEW 1: PRIORITY RADAR BY URGENCY BANDS */}
+          {/* VIEW 1: AGENDA / LIST STREAM (PRIMARY STUDENT VIEW) */}
+          {viewMode === "agenda" && (
+            <div className="space-y-6">
+              <div className="space-y-6">
+                {/* CRITICAL AGENDA SECTION */}
+                {bandGrouped.critical.length > 0 && (
+                  <AgendaTimeframeSection
+                    title="Closing Today — Critical Action Required"
+                    badgeText={`${bandGrouped.critical.length} Critical`}
+                    badgeClass="bg-rose-500/20 text-rose-300 border-rose-500/40 animate-pulse"
+                    icon={Flame}
+                    items={bandGrouped.critical}
+                    onAction={handleAction}
+                    updatingId={updatingId}
+                  />
+                )}
+
+                {/* URGENT AGENDA SECTION */}
+                {bandGrouped.urgent.length > 0 && (
+                  <AgendaTimeframeSection
+                    title="Closing Tomorrow — High Priority"
+                    badgeText={`${bandGrouped.urgent.length} Urgent`}
+                    badgeClass="bg-amber-500/20 text-amber-300 border-amber-500/40"
+                    icon={Clock}
+                    items={bandGrouped.urgent}
+                    onAction={handleAction}
+                    updatingId={updatingId}
+                  />
+                )}
+
+                {/* UPCOMING AGENDA SECTION */}
+                {bandGrouped.upcoming.length > 0 && (
+                  <AgendaTimeframeSection
+                    title="Next 7 Days — Upcoming Milestones"
+                    badgeText={`${bandGrouped.upcoming.length} Upcoming`}
+                    badgeClass="bg-sky-500/20 text-sky-300 border-sky-500/30"
+                    icon={Calendar}
+                    items={bandGrouped.upcoming}
+                    onAction={handleAction}
+                    updatingId={updatingId}
+                  />
+                )}
+
+                {/* LATER AGENDA SECTION */}
+                {bandGrouped.later.length > 0 && (
+                  <AgendaTimeframeSection
+                    title="Future Cutoffs & Scheduled Dates"
+                    badgeText={`${bandGrouped.later.length} Scheduled`}
+                    badgeClass="bg-indigo-500/20 text-indigo-300 border-indigo-500/30"
+                    icon={CalendarDays}
+                    items={bandGrouped.later}
+                    onAction={handleAction}
+                    updatingId={updatingId}
+                  />
+                )}
+
+                {/* CLOSED AGENDA SECTION */}
+                {bandGrouped.closed.length > 0 && (
+                  <AgendaTimeframeSection
+                    title="Past / Expired Deadlines"
+                    badgeText={`${bandGrouped.closed.length} Closed`}
+                    badgeClass="bg-zinc-800 text-zinc-500 border-zinc-700"
+                    icon={CheckCircle2}
+                    items={bandGrouped.closed}
+                    onAction={handleAction}
+                    updatingId={updatingId}
+                    isExpired
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 2: MONTH CALENDAR MATRIX */}
+          {viewMode === "month" && (
+            <div className="space-y-6">
+              <div className="p-6 sm:p-8 rounded-3xl bg-zinc-950/80 border border-zinc-800/80 space-y-6 shadow-2xl">
+                {/* Month Navigator Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <CalendarDays className="w-5 h-5 text-emerald-400" />
+                    <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider font-mono">
+                      Opportunity Schedule Matrix
+                    </h2>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-zinc-200 font-bold">
+                      {calendarDate.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() =>
+                          setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))
+                        }
+                        className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                        aria-label="Previous month"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setCalendarDate(new Date())}
+                        className="px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 text-[10px] font-mono transition-colors cursor-pointer"
+                      >
+                        Today
+                      </button>
+                      <button
+                        onClick={() =>
+                          setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))
+                        }
+                        className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                        aria-label="Next month"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Day Columns Header */}
+                <div className="grid grid-cols-7 gap-1 text-center font-mono text-[10px] text-zinc-500 font-bold uppercase py-1 border-b border-zinc-800/60">
+                  <span>Sun</span>
+                  <span>Mon</span>
+                  <span>Tue</span>
+                  <span>Wed</span>
+                  <span>Thu</span>
+                  <span>Fri</span>
+                  <span>Sat</span>
+                </div>
+
+                {/* Month Grid */}
+                {(() => {
+                  const y = calendarDate.getFullYear();
+                  const m = calendarDate.getMonth();
+                  const firstDay = new Date(y, m, 1).getDay();
+                  const totalDays = new Date(y, m + 1, 0).getDate();
+
+                  return (
+                    <div className="grid grid-cols-7 gap-1.5">
+                      {Array.from({ length: firstDay }).map((_, i) => (
+                        <div key={`cal-pad-${i}`} className="h-14 rounded-xl bg-transparent" />
+                      ))}
+
+                      {Array.from({ length: totalDays }).map((_, i) => {
+                        const day = i + 1;
+                        const dateKey = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+                        const dayEvents = calendarEventMap.get(dateKey) || [];
+
+                        const isToday =
+                          day === new Date().getDate() &&
+                          m === new Date().getMonth() &&
+                          y === new Date().getFullYear();
+
+                        const isSelected = selectedCalendarDay === dateKey;
+
+                        return (
+                          <button
+                            key={dateKey}
+                            onClick={() => setSelectedCalendarDay(isSelected ? null : dateKey)}
+                            className={`h-14 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative ${
+                              isSelected
+                                ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30"
+                                : isToday
+                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/40"
+                                : dayEvents.length > 0
+                                ? "bg-purple-500/10 text-purple-200 border-purple-500/30 hover:border-purple-500/60"
+                                : "bg-zinc-900/40 text-zinc-400 border-zinc-800/60 hover:bg-zinc-800/60"
+                            }`}
+                          >
+                            <span className="text-[11px] font-mono font-bold leading-none">{day}</span>
+
+                            {dayEvents.length > 0 && (
+                              <div className="flex items-center gap-0.5 justify-end">
+                                <span className="text-[9px] font-mono px-1 rounded bg-amber-500/20 text-amber-300 font-bold">
+                                  {dayEvents.length}
+                                </span>
+                              </div>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
+
+                {/* Selected Day Event Inspection Panel */}
+                <AnimatePresence>
+                  {selectedCalendarDay && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="pt-4 border-t border-zinc-800/80 space-y-3"
+                    >
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-zinc-300 font-bold">
+                          Events closing or scheduled on {selectedCalendarDay}:
+                        </span>
+                        <button
+                          onClick={() => setSelectedCalendarDay(null)}
+                          className="text-[10px] text-zinc-500 hover:text-zinc-300"
+                        >
+                          Clear Selection
+                        </button>
+                      </div>
+
+                      {(calendarEventMap.get(selectedCalendarDay) || []).length === 0 ? (
+                        <p className="text-xs text-zinc-500 font-mono italic">No deadlines logged for this date.</p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {(calendarEventMap.get(selectedCalendarDay) || []).map((item) => (
+                            <DeadlineCard key={item.id} item={item} onAction={handleAction} updatingId={updatingId} />
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 3: WEEK STRIP VIEW */}
+          {viewMode === "week" && (
+            <div className="space-y-6">
+              <div className="p-6 sm:p-8 rounded-3xl bg-zinc-950/80 border border-zinc-800/80 space-y-6 shadow-2xl">
+                {/* Week Header */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <CalendarRange className="w-5 h-5 text-sky-400" />
+                    <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider font-mono">
+                      Weekly Focus Strip
+                    </h2>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono text-zinc-200 font-bold">
+                      Week of {weekDays[0]?.date.toLocaleDateString("en-US", { month: "short", day: "numeric" })} – {weekDays[6]?.date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+                    </span>
+                    <div className="flex items-center gap-1">
+                      <button
+                        onClick={() => {
+                          const prev = new Date(calendarDate);
+                          prev.setDate(prev.getDate() - 7);
+                          setCalendarDate(prev);
+                        }}
+                        className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                        aria-label="Previous week"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        onClick={() => setCalendarDate(new Date())}
+                        className="px-2 py-1 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 text-[10px] font-mono transition-colors cursor-pointer"
+                      >
+                        This Week
+                      </button>
+                      <button
+                        onClick={() => {
+                          const next = new Date(calendarDate);
+                          next.setDate(next.getDate() + 7);
+                          setCalendarDate(next);
+                        }}
+                        className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
+                        aria-label="Next week"
+                      >
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 7-Day Columns */}
+                <div className="grid grid-cols-2 sm:grid-cols-7 gap-2">
+                  {weekDays.map((day) => {
+                    const isSelected = selectedCalendarDay === day.dateKey;
+                    return (
+                      <button
+                        key={day.dateKey}
+                        onClick={() => setSelectedCalendarDay(isSelected ? null : day.dateKey)}
+                        className={`p-3 rounded-2xl border flex flex-col justify-between space-y-3 text-left transition-all cursor-pointer min-h-[100px] ${
+                          isSelected
+                            ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30"
+                            : day.isToday
+                            ? "bg-emerald-500/10 border-emerald-500/40 text-emerald-300"
+                            : day.items.length > 0
+                            ? "bg-zinc-900/80 border-purple-500/30 hover:border-purple-500/50 text-zinc-200"
+                            : "bg-zinc-950/60 border-zinc-850 hover:border-zinc-700 text-zinc-400"
+                        }`}
+                      >
+                        <div className="space-y-0.5">
+                          <span className="text-[10px] font-mono uppercase font-bold text-zinc-400 block">
+                            {day.date.toLocaleDateString("en-US", { weekday: "short" })}
+                          </span>
+                          <span className="text-sm font-mono font-bold leading-none">
+                            {day.date.getDate()}
+                          </span>
+                        </div>
+
+                        <div className="text-[10px] font-mono">
+                          {day.items.length > 0 ? (
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-bold">
+                              {day.items.length} {day.items.length === 1 ? "event" : "events"}
+                            </span>
+                          ) : (
+                            <span className="text-zinc-600 text-[9px]">None</span>
+                          )}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Week Day Inspection Panel */}
+                <AnimatePresence>
+                  {selectedCalendarDay && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: "auto" }}
+                      exit={{ opacity: 0, height: 0 }}
+                      className="pt-4 border-t border-zinc-800/80 space-y-3"
+                    >
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="text-zinc-300 font-bold">
+                          Events scheduled on {selectedCalendarDay}:
+                        </span>
+                        <button
+                          onClick={() => setSelectedCalendarDay(null)}
+                          className="text-[10px] text-zinc-500 hover:text-zinc-300"
+                        >
+                          Clear Selection
+                        </button>
+                      </div>
+
+                      {(calendarEventMap.get(selectedCalendarDay) || []).length === 0 ? (
+                        <p className="text-xs text-zinc-500 font-mono italic">No events scheduled for this day.</p>
+                      ) : (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {(calendarEventMap.get(selectedCalendarDay) || []).map((item) => (
+                            <DeadlineCard key={item.id} item={item} onAction={handleAction} updatingId={updatingId} />
+                          ))}
+                        </div>
+                      )}
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </div>
+          )}
+
+          {/* VIEW 4: PRIORITY RADAR BY URGENCY BANDS */}
           {viewMode === "radar" && (
             <div className="space-y-8">
               {/* CRITICAL BAND (TODAY / <24H) */}
@@ -651,152 +1052,58 @@ export default function DeadlineRadarClient({
               )}
             </div>
           )}
-
-          {/* VIEW 2: MONTH CALENDAR MATRIX */}
-          {viewMode === "calendar" && (
-            <div className="space-y-6">
-              <div className="p-6 sm:p-8 rounded-3xl bg-zinc-950/80 border border-zinc-800/80 space-y-6 shadow-2xl">
-                {/* Month Navigator Header */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <CalendarDays className="w-5 h-5 text-emerald-400" />
-                    <h2 className="text-sm font-bold text-zinc-100 uppercase tracking-wider font-mono">
-                      Opportunity Schedule Matrix
-                    </h2>
-                  </div>
-
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs font-mono text-zinc-200 font-bold">
-                      {calendarDate.toLocaleDateString(undefined, { month: "long", year: "numeric" })}
-                    </span>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={() =>
-                          setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() - 1, 1))
-                        }
-                        className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
-                        aria-label="Previous month"
-                      >
-                        <ChevronLeft className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        onClick={() =>
-                          setCalendarDate(new Date(calendarDate.getFullYear(), calendarDate.getMonth() + 1, 1))
-                        }
-                        className="p-1.5 rounded-lg bg-zinc-900 border border-zinc-800 hover:border-zinc-700 text-zinc-400 hover:text-zinc-200 transition-colors cursor-pointer"
-                        aria-label="Next month"
-                      >
-                        <ChevronRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Day Columns Header */}
-                <div className="grid grid-cols-7 gap-1 text-center font-mono text-[10px] text-zinc-500 font-bold uppercase py-1 border-b border-zinc-800/60">
-                  <span>Sun</span>
-                  <span>Mon</span>
-                  <span>Tue</span>
-                  <span>Wed</span>
-                  <span>Thu</span>
-                  <span>Fri</span>
-                  <span>Sat</span>
-                </div>
-
-                {/* Month Grid */}
-                {(() => {
-                  const y = calendarDate.getFullYear();
-                  const m = calendarDate.getMonth();
-                  const firstDay = new Date(y, m, 1).getDay();
-                  const totalDays = new Date(y, m + 1, 0).getDate();
-
-                  return (
-                    <div className="grid grid-cols-7 gap-1.5">
-                      {Array.from({ length: firstDay }).map((_, i) => (
-                        <div key={`cal-pad-${i}`} className="h-12 rounded-xl bg-transparent" />
-                      ))}
-
-                      {Array.from({ length: totalDays }).map((_, i) => {
-                        const day = i + 1;
-                        const dateKey = `${y}-${String(m + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
-                        const dayEvents = calendarEventMap.get(dateKey) || [];
-
-                        const isToday =
-                          day === new Date().getDate() &&
-                          m === new Date().getMonth() &&
-                          y === new Date().getFullYear();
-
-                        const isSelected = selectedCalendarDay === dateKey;
-
-                        return (
-                          <button
-                            key={dateKey}
-                            onClick={() => setSelectedCalendarDay(isSelected ? null : dateKey)}
-                            className={`h-12 rounded-xl border p-1.5 flex flex-col justify-between transition-all cursor-pointer relative ${
-                              isSelected
-                                ? "bg-indigo-600 text-white border-indigo-500 shadow-lg shadow-indigo-600/30"
-                                : isToday
-                                ? "bg-emerald-500/10 text-emerald-300 border-emerald-500/40"
-                                : dayEvents.length > 0
-                                ? "bg-purple-500/10 text-purple-200 border-purple-500/30 hover:border-purple-500/60"
-                                : "bg-zinc-900/40 text-zinc-400 border-zinc-800/60 hover:bg-zinc-800/60"
-                            }`}
-                          >
-                            <span className="text-[11px] font-mono font-bold leading-none">{day}</span>
-
-                            {dayEvents.length > 0 && (
-                              <div className="flex items-center gap-0.5 justify-end">
-                                <span className="text-[9px] font-mono px-1 rounded bg-amber-500/20 text-amber-300 font-bold">
-                                  {dayEvents.length}
-                                </span>
-                              </div>
-                            )}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  );
-                })()}
-
-                {/* Selected Day Event Inspection Panel */}
-                <AnimatePresence>
-                  {selectedCalendarDay && (
-                    <motion.div
-                      initial={{ opacity: 0, height: 0 }}
-                      animate={{ opacity: 1, height: "auto" }}
-                      exit={{ opacity: 0, height: 0 }}
-                      className="pt-4 border-t border-zinc-800/80 space-y-3"
-                    >
-                      <div className="flex items-center justify-between text-xs font-mono">
-                        <span className="text-zinc-300 font-bold">
-                          Events closing on {selectedCalendarDay}:
-                        </span>
-                        <button
-                          onClick={() => setSelectedCalendarDay(null)}
-                          className="text-[10px] text-zinc-500 hover:text-zinc-300"
-                        >
-                          Clear Selection
-                        </button>
-                      </div>
-
-                      {(calendarEventMap.get(selectedCalendarDay) || []).length === 0 ? (
-                        <p className="text-xs text-zinc-500 font-mono italic">No deadlines logged for this date.</p>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          {(calendarEventMap.get(selectedCalendarDay) || []).map((item) => (
-                            <DeadlineCard key={item.id} item={item} onAction={handleAction} updatingId={updatingId} />
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-            </div>
-          )}
         </div>
       )}
     </motion.div>
+  );
+}
+
+/* ──────────────── AGENDA TIMEFRAME SECTION COMPONENT ──────────────── */
+function AgendaTimeframeSection({
+  title,
+  badgeText,
+  badgeClass,
+  icon: Icon,
+  items,
+  onAction,
+  updatingId,
+  isExpired = false,
+}: {
+  title: string;
+  badgeText: string;
+  badgeClass: string;
+  icon: React.ElementType;
+  items: ProcessedRadarItem[];
+  onAction: (item: ProcessedRadarItem, targetState: StudentLifecycleState) => void;
+  updatingId: string | null;
+  isExpired?: boolean;
+}) {
+  return (
+    <div className="p-5 sm:p-7 rounded-3xl bg-zinc-950/80 border border-zinc-800/80 space-y-4 shadow-xl">
+      <div className="flex items-center justify-between flex-wrap gap-2 pb-3 border-b border-zinc-800/60">
+        <div className="flex items-center gap-2.5">
+          <Icon className="w-4 h-4 text-zinc-400" />
+          <h2 className="text-sm sm:text-base font-bold text-zinc-100 font-mono tracking-tight">
+            {title}
+          </h2>
+        </div>
+        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-mono border font-bold ${badgeClass}`}>
+          {badgeText}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {items.map((item) => (
+          <DeadlineCard
+            key={item.id}
+            item={item}
+            isExpired={isExpired}
+            onAction={onAction}
+            updatingId={updatingId}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 

@@ -567,24 +567,34 @@ export default function NotificationBellPopover({
               </AnimatePresence>
 
               {/* ─── Footer Action Bar ─── */}
-              <div className="p-3 border-t border-zinc-800/80 bg-zinc-900/30 flex items-center justify-between text-xs font-mono text-zinc-400 shrink-0">
+              <div className="p-3 border-t border-zinc-800/80 bg-zinc-900/40 flex items-center justify-between text-xs font-mono text-zinc-400 shrink-0 gap-2">
                 <Link
                   href="/dashboard/student/calendar"
                   onClick={() => setIsOpen(false)}
                   className="hover:text-zinc-200 transition-colors flex items-center gap-1"
                 >
-                  <Calendar className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>Calendar Timeline</span>
+                  <Calendar className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Calendar</span>
                 </Link>
 
-                <Link
-                  href="/dashboard/student/feed"
-                  onClick={() => setIsOpen(false)}
-                  className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors flex items-center gap-1"
-                >
-                  <span>Activity Feed</span>
-                  <ChevronRight className="w-3.5 h-3.5" />
-                </Link>
+                <div className="flex items-center gap-3">
+                  <Link
+                    href="/dashboard/student/feed"
+                    onClick={() => setIsOpen(false)}
+                    className="hover:text-zinc-200 transition-colors"
+                  >
+                    <span>Activity</span>
+                  </Link>
+
+                  <Link
+                    href="/dashboard/student/notifications"
+                    onClick={() => setIsOpen(false)}
+                    className="text-indigo-400 hover:text-indigo-300 font-bold transition-colors flex items-center gap-1"
+                  >
+                    <span>All Alerts</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </Link>
+                </div>
               </div>
             </motion.div>
           </>
