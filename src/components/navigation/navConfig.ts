@@ -124,7 +124,7 @@ export const studentNavConfig: RoleNavConfig = {
           label: "My Activity",
           href: "/dashboard/student/feed",
           icon: Activity,
-          description: "Your campus activity feed",
+          description: "Your chronological activity timeline",
         },
         {
           id: "achievements",

@@ -94,7 +94,7 @@ export default function ActivitySnapshotWidget({
           </div>
 
           <Link
-            href="/dashboard/student/registrations"
+            href="/dashboard/student/feed"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-850 border border-zinc-800 text-xs font-mono font-medium text-indigo-400 hover:text-indigo-300 transition-all cursor-pointer shadow-sm active:scale-95"
           >
             <span>View all activity</span>
@@ -177,10 +177,10 @@ export default function ActivitySnapshotWidget({
       <div className="pt-3 border-t border-zinc-800/60 flex items-center justify-between text-xs font-mono text-zinc-500 relative z-10">
         <span>Verified Log: Real-time</span>
         <Link
-          href="/dashboard/student/registrations"
+          href="/dashboard/student/feed"
           className="text-zinc-400 hover:text-zinc-200 transition-colors"
         >
-          My Submissions →
+          My Activity →
         </Link>
       </div>
     </div>
