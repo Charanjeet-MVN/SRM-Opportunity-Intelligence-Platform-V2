@@ -951,7 +951,6 @@ export async function getStudentActivityTimelineAction(): Promise<{
       const clubName = opp.clubs?.name || "SRM Organization";
 
       const isCompleted = item.status === "attended";
-      const isApplied = item.status === "registered" || !item.status;
       const stageName = item.notes || (isCompleted ? "Completed" : "Applied");
 
       const activityType: StudentActivityType = isCompleted

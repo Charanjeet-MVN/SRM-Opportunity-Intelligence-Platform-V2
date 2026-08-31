@@ -74,10 +74,11 @@ export async function updateStudentProfileAction(
   }
 
   const fullName = (formData.get("fullName") as string)?.trim();
-  const registerNumber = (formData.get("registerNumber") as string)?.trim();
+  const registerNumber = (formData.get("registerNumber") as string)?.trim().toUpperCase();
   const department = (formData.get("department") as string)?.trim();
   const yearOfStudyStr = formData.get("yearOfStudy") as string;
-  const yearOfStudy = yearOfStudyStr ? parseInt(yearOfStudyStr, 10) : undefined;
+  const yearOfStudyNum = yearOfStudyStr ? parseInt(yearOfStudyStr, 10) : undefined;
+  const yearOfStudy = yearOfStudyNum && yearOfStudyNum >= 1 && yearOfStudyNum <= 5 ? yearOfStudyNum : undefined;
   const careerGoals = (formData.get("careerGoals") as string)?.trim();
 
   // Skills & Interests array parsing
@@ -88,14 +89,24 @@ export async function updateStudentProfileAction(
   let interests: string[] = [];
 
   try {
-    if (skillsJson) skills = JSON.parse(skillsJson);
-    if (interestsJson) interests = JSON.parse(interestsJson);
+    if (skillsJson) {
+      const parsed = JSON.parse(skillsJson);
+      if (Array.isArray(parsed)) {
+        skills = Array.from(new Set(parsed.map((s: string) => String(s).trim()).filter(Boolean)));
+      }
+    }
+    if (interestsJson) {
+      const parsed = JSON.parse(interestsJson);
+      if (Array.isArray(parsed)) {
+        interests = Array.from(new Set(parsed.map((i: string) => String(i).trim()).filter(Boolean)));
+      }
+    }
   } catch {
     // fallback to empty array if parsing error
   }
 
-  if (!fullName) {
-    return { error: "Full Name is required." };
+  if (!fullName || fullName.length < 2) {
+    return { error: "Please provide a valid Full Name (at least 2 characters)." };
   }
 
   const { data, error } = await supabase
@@ -119,6 +130,9 @@ export async function updateStudentProfileAction(
 
   revalidatePath("/dashboard/student/profile");
   revalidatePath("/dashboard/student");
+  revalidatePath("/opportunities");
+  revalidatePath("/dashboard/student/activity");
+  revalidatePath("/dashboard/student/calendar");
 
   const updatedProfile: StudentProfile = {
     id: data.id,
@@ -136,7 +150,7 @@ export async function updateStudentProfileAction(
 
   return {
     success: true,
-    message: "Profile updated successfully!",
+    message: "Personalization signals updated successfully! Your opportunity recommendations are synchronized.",
     profile: updatedProfile,
   };
 }
