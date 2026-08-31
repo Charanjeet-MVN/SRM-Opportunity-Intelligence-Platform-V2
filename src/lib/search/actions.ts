@@ -75,7 +75,7 @@ export async function searchCommandPaletteAction(
       { id: "nav-clubs", type: "page", title: "Verified SRM Clubs & Orgs", subtitle: "Official SRM campus organization directory", url: "/clubs", badge: "Public" },
       { id: "nav-feed", type: "page", title: "Campus Showcase Feed", subtitle: "Explore student achievements, won hackathons and certs", url: "/dashboard/student/feed", badge: "Student" },
       { id: "nav-notifs", type: "page", title: "Notifications & Activity Center", subtitle: "Real-time alerts, deadline reminders & announcements", url: "/dashboard/student/notifications", badge: "Activity" },
-      { id: "nav-prof", type: "page", title: "Student Profile & Skill Radar", subtitle: "Manage skills, departments & preferences", url: "/dashboard/student/profile", badge: "Settings" }
+      { id: "nav-prof", type: "page", title: "Personalization Control Center", subtitle: "Manage skills, departments & relevance signals", url: "/dashboard/student/profile", badge: "Settings" }
     );
   }
 
@@ -109,7 +109,7 @@ export async function searchCommandPaletteAction(
     { id: "act-view-registrations", type: "action", title: "View My Registrations", subtitle: "Track applied events and hackathons", url: "/dashboard/student/registrations", badge: "Action" },
     { id: "act-open-dash", type: "action", title: "Open Dashboard", subtitle: "Go to your personal cockpit", url: role === "super_admin" ? "/dashboard/admin" : role === "club_rep" ? "/dashboard/club" : "/dashboard/student", badge: "Action" },
     { id: "act-open-calendar", type: "action", title: "Open Deadline Radar", subtitle: "View calendar of application closing dates", url: "/dashboard/student/calendar", badge: "Action" },
-    { id: "act-open-profile", type: "action", title: "Open Profile & Skill Radar", subtitle: "Update skills, year and department", url: "/dashboard/student/profile", badge: "Action" }
+    { id: "act-open-profile", type: "action", title: "Open Personalization Control Center", subtitle: "Update skills, year and department signals", url: "/dashboard/student/profile", badge: "Action" }
   );
 
   // 3. Dynamic Smart Search items based on query prefix
@@ -121,11 +121,11 @@ export async function searchCommandPaletteAction(
     );
   }
 
-  if (q.includes("profile") || q.includes("score") || q.includes("career")) {
+  if (q.includes("profile") || q.includes("score") || q.includes("personal") || q.includes("signal")) {
     items.push(
-      { id: "smart-prof-my", type: "action", title: "My Profile", subtitle: "View your public career profile", url: "/dashboard/student/profile", badge: "Smart Search" },
-      { id: "smart-prof-edit", type: "action", title: "Edit Profile", subtitle: "Update skills, resume & goals", url: "/dashboard/student/profile", badge: "Smart Search" },
-      { id: "smart-prof-score", type: "action", title: "Career Score", subtitle: "Analyze profile vector completeness", url: "/dashboard/student/profile", badge: "Smart Search" }
+      { id: "smart-prof-my", type: "action", title: "Personalization Center", subtitle: "View your opportunity vector", url: "/dashboard/student/profile", badge: "Smart Search" },
+      { id: "smart-prof-edit", type: "action", title: "Edit Personalization Signals", subtitle: "Update skills, department & goals", url: "/dashboard/student/profile", badge: "Smart Search" },
+      { id: "smart-prof-score", type: "action", title: "Signal Readiness Score", subtitle: "Analyze personalization vector completeness", url: "/dashboard/student/profile", badge: "Smart Search" }
     );
   }
 

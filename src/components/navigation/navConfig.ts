@@ -148,10 +148,10 @@ export const studentNavConfig: RoleNavConfig = {
         },
         {
           id: "profile",
-          label: "Profile",
+          label: "Personalization",
           href: "/dashboard/student/profile",
           icon: User,
-          description: "Profile, skills & settings",
+          description: "Signals, skills & eligibility vector",
         },
       ],
     },

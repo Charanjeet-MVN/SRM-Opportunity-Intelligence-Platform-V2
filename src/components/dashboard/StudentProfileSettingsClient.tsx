@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useActionState, useEffect, useState } from "react";
-import { motion } from "framer-motion";
+import React, { useActionState, useEffect, useState, useMemo, useTransition } from "react";
+import Link from "next/link";
+import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import {
   updateStudentProfileAction,
   updateStudentPasswordAction,
@@ -21,8 +22,18 @@ import {
   Lock,
   LogOut,
   Zap,
-  Award,
-  Share2,
+  ArrowRight,
+  GraduationCap,
+  Sliders,
+  ShieldCheck,
+  Compass,
+  Layers,
+  Search,
+  RotateCcw,
+  Info,
+  Check,
+  KeyRound,
+  FileCode2,
 } from "lucide-react";
 
 interface StudentProfileSettingsClientProps {
@@ -34,65 +45,27 @@ export default function StudentProfileSettingsClient({
   initialProfile,
   userEmail,
 }: StudentProfileSettingsClientProps) {
-  const [profile, setProfile] = useState<StudentProfile | null>(initialProfile);
-  const [activeTab, setActiveTab] = useState<"profile" | "settings">("profile");
+  const shouldReduceMotion = useReducedMotion();
+  const [activeTab, setActiveTab] = useState<"personalization" | "security">("personalization");
 
-  // Dynamic profile achievements, activity score, and badges
-  const [stats, setStats] = useState({
-    achievements: 0,
-    activityScore: 100,
-    badges: [] as string[],
-  });
-  const [copied, setCopied] = useState(false);
+  // Local saved profile source of truth
+  const [savedProfile, setSavedProfile] = useState<StudentProfile | null>(initialProfile);
 
-  useEffect(() => {
-    try {
-      const savedGoals = localStorage.getItem("soip_workspace_goals");
-      const savedNotes = localStorage.getItem("soip_workspace_notes");
-      const savedResources = localStorage.getItem("soip_workspace_resources");
-
-      const goalsList = savedGoals ? JSON.parse(savedGoals) : [];
-      const notesList = savedNotes ? JSON.parse(savedNotes) : [];
-      const resourcesList = savedResources ? JSON.parse(savedResources) : [];
-
-      const completedGoals = goalsList.filter((g: { status?: string }) => g.status === "completed").length;
-
-      // Base activity score: 100 + (completed goals * 25) + (notes * 10) + (saved resources * 15)
-      const score = 100 + (completedGoals * 25) + (notesList.length * 10) + (resourcesList.filter((r: { saved?: boolean }) => r.saved).length * 15);
-
-      const earnedBadges: string[] = [];
-      if (notesList.length > 0) earnedBadges.push("Knowledge Seeker");
-      if (completedGoals > 0) earnedBadges.push("Goal Achiever");
-      if (score >= 150) earnedBadges.push("Career Accelerator");
-      if (resourcesList.filter((r: { saved?: boolean }) => r.saved).length > 0) earnedBadges.push("Opportunity Hunter");
-
-      if (earnedBadges.length === 0) earnedBadges.push("Joined Pioneer");
-
-      setStats({
-        achievements: completedGoals,
-        activityScore: score,
-        badges: earnedBadges,
-      });
-    } catch {
-      // ignore
-    }
-  }, []);
-
-  const handleShareProfile = () => {
-    const shareUrl = `${window.location.origin}/student/profile/${profile?.registerNumber || profile?.id || "demo"}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  };
-
-  // Selected skills and interests arrays
+  // Form Field States
+  const [fullName, setFullName] = useState(initialProfile?.fullName || "");
+  const [registerNumber, setRegisterNumber] = useState(initialProfile?.registerNumber || "");
+  const [department, setDepartment] = useState(initialProfile?.department || DEPARTMENTS[0]);
+  const [yearOfStudy, setYearOfStudy] = useState<number>(initialProfile?.yearOfStudy || 3);
   const [selectedSkills, setSelectedSkills] = useState<string[]>(initialProfile?.skills || []);
   const [selectedInterests, setSelectedInterests] = useState<string[]>(initialProfile?.interests || []);
-  const [customSkillInput, setCustomSkillInput] = useState("");
-  const [skillSearch, setSkillSearch] = useState("");
+  const [careerGoals, setCareerGoals] = useState(initialProfile?.careerGoals || "");
 
-  // Action states
+  // Taxonomy Search and Custom Input
+  const [skillSearch, setSkillSearch] = useState("");
+  const [customSkillInput, setCustomSkillInput] = useState("");
+  const [validationError, setValidationError] = useState<string | null>(null);
+
+  // Server Action States
   const [profileState, profileFormAction, isProfilePending] = useActionState<
     StudentProfileFormState,
     FormData
@@ -103,215 +76,435 @@ export default function StudentProfileSettingsClient({
     FormData
   >(updateStudentPasswordAction, {});
 
-  // Sync profile when profileState changes
+  // Sync state when server action returns updated profile
   useEffect(() => {
     if (profileState.profile) {
-      setProfile(profileState.profile);
+      setSavedProfile(profileState.profile);
+      setFullName(profileState.profile.fullName || "");
+      setRegisterNumber(profileState.profile.registerNumber || "");
+      setDepartment(profileState.profile.department || DEPARTMENTS[0]);
+      setYearOfStudy(profileState.profile.yearOfStudy || 3);
       setSelectedSkills(profileState.profile.skills || []);
       setSelectedInterests(profileState.profile.interests || []);
+      setCareerGoals(profileState.profile.careerGoals || "");
+      setValidationError(null);
     }
   }, [profileState.profile]);
 
+  // Determine dirty state (unsaved modifications)
+  const isDirty = useMemo(() => {
+    const orig = savedProfile;
+    const origFullName = orig?.fullName || "";
+    const origReg = orig?.registerNumber || "";
+    const origDept = orig?.department || DEPARTMENTS[0];
+    const origYear = orig?.yearOfStudy || 3;
+    const origGoals = orig?.careerGoals || "";
+    const origSkills = orig?.skills || [];
+    const origInterests = orig?.interests || [];
+
+    if (fullName.trim() !== origFullName.trim()) return true;
+    if (registerNumber.trim().toUpperCase() !== origReg.trim().toUpperCase()) return true;
+    if (department !== origDept) return true;
+    if (yearOfStudy !== origYear) return true;
+    if (careerGoals.trim() !== origGoals.trim()) return true;
+
+    // Arrays compare
+    if (selectedSkills.length !== origSkills.length) return true;
+    const sortedSkills = [...selectedSkills].sort();
+    const sortedOrigSkills = [...origSkills].sort();
+    if (sortedSkills.some((s, idx) => s !== sortedOrigSkills[idx])) return true;
+
+    if (selectedInterests.length !== origInterests.length) return true;
+    const sortedInterests = [...selectedInterests].sort();
+    const sortedOrigInterests = [...origInterests].sort();
+    if (sortedInterests.some((i, idx) => i !== sortedOrigInterests[idx])) return true;
+
+    return false;
+  }, [
+    savedProfile,
+    fullName,
+    registerNumber,
+    department,
+    yearOfStudy,
+    careerGoals,
+    selectedSkills,
+    selectedInterests,
+  ]);
+
+  // Reset form back to saved profile
+  const handleDiscardChanges = () => {
+    if (!savedProfile) return;
+    setFullName(savedProfile.fullName || "");
+    setRegisterNumber(savedProfile.registerNumber || "");
+    setDepartment(savedProfile.department || DEPARTMENTS[0]);
+    setYearOfStudy(savedProfile.yearOfStudy || 3);
+    setSelectedSkills(savedProfile.skills || []);
+    setSelectedInterests(savedProfile.interests || []);
+    setCareerGoals(savedProfile.careerGoals || "");
+    setValidationError(null);
+  };
+
+  // Skill manipulations
   const toggleSkill = (skill: string) => {
     setSelectedSkills((prev) =>
       prev.includes(skill) ? prev.filter((s) => s !== skill) : [...prev, skill]
     );
   };
 
+  const removeSkill = (skill: string) => {
+    setSelectedSkills((prev) => prev.filter((s) => s !== skill));
+  };
+
   const addCustomSkill = () => {
     const trimmed = customSkillInput.trim();
-    if (trimmed && !selectedSkills.includes(trimmed)) {
+    if (trimmed && !selectedSkills.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
       setSelectedSkills((prev) => [...prev, trimmed]);
       setCustomSkillInput("");
     }
   };
 
+  // Interest manipulations
   const toggleInterest = (interest: string) => {
     setSelectedInterests((prev) =>
       prev.includes(interest) ? prev.filter((i) => i !== interest) : [...prev, interest]
     );
   };
 
-  const calculateCompleteness = () => {
-    let points = 0;
-    if (profile?.fullName) points += 20;
-    if (profile?.registerNumber) points += 15;
-    if (profile?.department) points += 15;
-    if (profile?.yearOfStudy) points += 10;
-    if (selectedSkills.length > 0) points += 20;
-    if (selectedInterests.length > 0) points += 10;
-    if (profile?.careerGoals) points += 10;
-    return points;
+  // Real, deterministic completeness calculation
+  const completeness = useMemo(() => {
+    let score = 0;
+    if (fullName.trim().length >= 2) score += 20;
+    if (registerNumber.trim().length >= 5) score += 15;
+    if (department) score += 15;
+    if (yearOfStudy >= 1 && yearOfStudy <= 5) score += 10;
+    if (selectedSkills.length >= 3) score += 20;
+    else if (selectedSkills.length > 0) score += 10;
+    if (selectedInterests.length >= 2) score += 10;
+    else if (selectedInterests.length > 0) score += 5;
+    if (careerGoals.trim().length >= 10) score += 10;
+    else if (careerGoals.trim().length > 0) score += 5;
+    return Math.min(100, score);
+  }, [fullName, registerNumber, department, yearOfStudy, selectedSkills, selectedInterests, careerGoals]);
+
+  // Actionable missing fields list
+  const missingSignals = useMemo(() => {
+    const list: { label: string; impact: string; actionAnchor: string }[] = [];
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      list.push({
+        label: "Full Name",
+        impact: "Required for official event registration and certificate generation.",
+        actionAnchor: "field-fullName",
+      });
+    }
+    if (!registerNumber.trim()) {
+      list.push({
+        label: "SRM Register Number",
+        impact: "Enables automated campus credentials & club eligibility verification.",
+        actionAnchor: "field-registerNumber",
+      });
+    }
+    if (!department) {
+      list.push({
+        label: "Academic Department",
+        impact: "Crucial for departmental opportunity filtering (up to 20% match weight).",
+        actionAnchor: "field-department",
+      });
+    }
+    if (!yearOfStudy) {
+      list.push({
+        label: "Year of Study",
+        impact: "Enables batch-specific opportunity eligibility (up to 15% match weight).",
+        actionAnchor: "field-yearOfStudy",
+      });
+    }
+    if (selectedSkills.length < 3) {
+      list.push({
+        label: "Technical Skills (Min 3)",
+        impact: "Primary signal for opportunity relevance matching (up to 50% match weight).",
+        actionAnchor: "field-skills",
+      });
+    }
+    if (selectedInterests.length < 2) {
+      list.push({
+        label: "Opportunity Interests (Min 2)",
+        impact: "Prioritizes event categories (Hackathons, Internships, Research) in your feed.",
+        actionAnchor: "field-interests",
+      });
+    }
+    if (!careerGoals.trim()) {
+      list.push({
+        label: "Career Goals & Target Roles",
+        impact: "Informs the AI synthesis engine when preparing tailored fit summaries.",
+        actionAnchor: "field-careerGoals",
+      });
+    }
+    return list;
+  }, [fullName, registerNumber, department, yearOfStudy, selectedSkills, selectedInterests, careerGoals]);
+
+  // Filtered skills taxonomy
+  const filteredTaxonomy = useMemo(() => {
+    if (!skillSearch.trim()) return SKILL_TAXONOMY;
+    const q = skillSearch.toLowerCase().trim();
+    return SKILL_TAXONOMY.filter((s) => s.toLowerCase().includes(q));
+  }, [skillSearch]);
+
+  // Signal Readiness tier
+  const signalQuality = useMemo(() => {
+    if (completeness >= 85) {
+      return {
+        label: "Optimal Relevance Signals",
+        badgeClass: "bg-emerald-500/10 text-emerald-300 border-emerald-500/20",
+        barGradient: "from-purple-500 via-indigo-400 to-emerald-400",
+        description: "Your personalization vector is fully calibrated for precision matching.",
+      };
+    }
+    if (completeness >= 60) {
+      return {
+        label: "Strong Matching Vector",
+        badgeClass: "bg-indigo-500/10 text-indigo-300 border-indigo-500/20",
+        barGradient: "from-purple-500 to-indigo-400",
+        description: "Good match coverage. Complete missing signals to maximize opportunity relevance.",
+      };
+    }
+    return {
+      label: "Basic Signals Configured",
+      badgeClass: "bg-amber-500/10 text-amber-300 border-amber-500/20",
+      barGradient: "from-amber-500 to-purple-500",
+      description: "Add your core skills and interests to power personalized recommendations.",
+    };
+  }, [completeness]);
+
+  const handleFormSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    if (!fullName.trim() || fullName.trim().length < 2) {
+      e.preventDefault();
+      setValidationError("Full Name must be at least 2 characters.");
+      return;
+    }
+    setValidationError(null);
   };
-
-  const completeness = calculateCompleteness();
-
-  const missingFields = [
-    !profile?.fullName && { label: "Full Name", tip: "Add your full name for official certificates" },
-    !profile?.registerNumber && { label: "Register Number", tip: "Add SRM Register Number for campus verification" },
-    !profile?.department && { label: "Department", tip: "Specify department for academic eligibility matching" },
-    !profile?.yearOfStudy && { label: "Year of Study", tip: "Select year of study for target event filtering" },
-    selectedSkills.length === 0 && { label: "Skills", tip: "Select at least 3 skills to power opportunity relevance scoring" },
-    selectedInterests.length === 0 && { label: "Interests", tip: "Choose career interests to refine feed recommendations" },
-    !profile?.careerGoals && { label: "Career Goals", tip: "Add target roles to personalize your dashboard feed" },
-  ].filter(Boolean) as { label: string; tip: string }[];
-
-  const filteredSkills = SKILL_TAXONOMY.filter((s) =>
-    s.toLowerCase().includes(skillSearch.toLowerCase())
-  );
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={shouldReduceMotion ? { opacity: 1 } : { opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+      transition={{ duration: 0.3, ease: "easeOut" }}
       className="space-y-8"
     >
-      {/* Profile Hero Card */}
-      <div className="p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-zinc-900 via-zinc-900/90 to-purple-950/30 border border-zinc-800/80 shadow-2xl space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center font-bold text-indigo-400 text-2xl overflow-hidden shrink-0 shadow-2xl">
-              {profile?.fullName ? profile.fullName.charAt(0).toUpperCase() : "S"}
-            </div>
+      {/* 1. PERSONALIZATION CONTROL CENTER HEADER */}
+      <div className="relative p-6 sm:p-8 rounded-3xl bg-gradient-to-br from-zinc-900/95 via-zinc-950/90 to-purple-950/20 border border-zinc-800/80 shadow-2xl backdrop-blur-2xl overflow-hidden space-y-6">
+        {/* Ambient Backlight */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-20 -left-20 w-80 h-80 bg-indigo-600/10 rounded-full blur-3xl pointer-events-none" />
 
-            <div className="space-y-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <h1 className="text-xl sm:text-2xl font-black tracking-tight text-zinc-100">
-                  {profile?.fullName || "Student User"}
-                </h1>
-                {profile?.department && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-purple-500/10 text-purple-300 border border-purple-500/20">
-                    {profile.department}
-                  </span>
-                )}
-                {profile?.yearOfStudy && (
-                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/10 text-indigo-300 border border-indigo-500/20">
-                    Year {profile.yearOfStudy}
-                  </span>
-                )}
+        <div className="relative z-10 space-y-6">
+          {/* Top Pill / Status Line */}
+          <div className="flex items-center justify-between gap-3 flex-wrap">
+            <div className="flex items-center gap-2 flex-wrap">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[11px] font-mono bg-zinc-900/90 border border-zinc-800 text-zinc-300 shadow-sm">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-purple-400 opacity-75" />
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-purple-500" />
+                </span>
+                <span className="text-purple-400 font-semibold uppercase tracking-wider text-[9px]">
+                  Personalization Control Center
+                </span>
+                <span className="text-zinc-600">•</span>
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+                <span className="text-zinc-400 text-[10px]">Private Student Context</span>
               </div>
 
-              {userEmail && <p className="text-xs font-mono text-zinc-400">{userEmail}</p>}
-              {profile?.registerNumber && (
-                <p className="text-[11px] font-mono text-zinc-500">Reg: {profile.registerNumber}</p>
+              {savedProfile?.department && (
+                <span className="px-3 py-1 rounded-full text-xs font-mono bg-zinc-900/80 border border-zinc-800 text-indigo-300">
+                  {savedProfile.department}
+                </span>
+              )}
+
+              {savedProfile?.yearOfStudy && (
+                <span className="px-3 py-1 rounded-full text-xs font-mono bg-zinc-900/80 border border-zinc-800 text-purple-300">
+                  Year {savedProfile.yearOfStudy}
+                </span>
               )}
             </div>
+
+            {/* Dirty State Indicator */}
+            {isDirty && (
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-mono bg-amber-500/10 text-amber-300 border border-amber-500/25 animate-pulse">
+                <AlertCircle className="w-3.5 h-3.5" />
+                <span>Unsaved Modifications</span>
+              </span>
+            )}
           </div>
 
-          {/* Completeness Score Badge */}
-          <div className="w-full md:w-60 p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-2 shrink-0">
-            <div className="flex items-center justify-between text-xs font-mono">
-              <span className="text-zinc-400 font-bold uppercase">Intelligence Score</span>
-              <span className="text-purple-400 font-bold">{completeness}%</span>
-            </div>
-            <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-purple-500 to-emerald-400 transition-all duration-500"
-                style={{ width: `${completeness}%` }}
-              />
-            </div>
-            <p className="text-[10px] font-mono text-zinc-500">
-              {completeness < 75
-                ? "Complete missing fields to maximize opportunity match accuracy"
-                : "Vector fully optimized for AI opportunity scoring"}
-            </p>
-          </div>
-        </div>
+          {/* Avatar + Student Identity + Intelligence Gauge */}
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div className="flex items-center gap-5">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-zinc-950 border border-zinc-800 flex items-center justify-center font-black text-indigo-400 text-2xl sm:text-3xl shrink-0 shadow-2xl">
+                {fullName ? fullName.charAt(0).toUpperCase() : "S"}
+              </div>
 
-        {/* Achievements, Badges, and Activity Score Widget */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4 border-t border-zinc-850/60 text-xs font-mono">
-          <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-inner">
-            <div className="space-y-1">
-              <span className="text-zinc-500 uppercase text-[9px] block">Achievements</span>
-              <span className="text-xs font-bold text-zinc-200">{stats.achievements} Completed</span>
+              <div className="space-y-1">
+                <h1 className="text-xl sm:text-3xl font-black tracking-tight text-white leading-tight">
+                  {fullName || "Student User"}
+                </h1>
+                <div className="flex items-center gap-3 text-xs font-mono text-zinc-400 flex-wrap">
+                  {userEmail && <span>{userEmail}</span>}
+                  {registerNumber && (
+                    <>
+                      <span className="text-zinc-600 hidden sm:inline">•</span>
+                      <span className="text-zinc-300">Reg: {registerNumber}</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <Award className="w-5 h-5 text-amber-400 shrink-0" />
-          </div>
 
-          <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-inner">
-            <div className="space-y-1">
-              <span className="text-zinc-500 uppercase text-[9px] block">Activity Score</span>
-              <span className="text-xs font-bold text-purple-405">{stats.activityScore} Pts</span>
-            </div>
-            <Zap className="w-5 h-5 text-purple-400 shrink-0 animate-pulse" />
-          </div>
-
-          <div className="p-4 rounded-2xl bg-zinc-950/60 border border-zinc-850/80 flex items-center justify-between shadow-inner">
-            <div className="space-y-1">
-              <span className="text-zinc-500 uppercase text-[9px] block">Public Portfolio</span>
-              <button
-                onClick={handleShareProfile}
-                className="px-2 py-1 rounded bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 hover:border-zinc-700 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all text-[10px] cursor-pointer"
-              >
-                <span>{copied ? "Copied!" : "Share Link"}</span>
-                <Share2 className="w-3 h-3 text-zinc-500" />
-              </button>
-            </div>
-            <User className="w-5 h-5 text-indigo-400 shrink-0" />
-          </div>
-        </div>
-
-        {/* Badges Earned Section */}
-        {stats.badges.length > 0 && (
-          <div className="space-y-2 pt-2 text-xs font-mono">
-            <span className="text-[9px] uppercase font-bold text-zinc-500 tracking-wider block">Earned Badges</span>
-            <div className="flex flex-wrap gap-2">
-              {stats.badges.map((badge, idx) => (
-                <span
-                  key={idx}
-                  className="px-2.5 py-1 rounded-xl text-[10px] bg-purple-500/10 text-purple-300 border border-purple-500/20 font-bold flex items-center gap-1.5 shadow-sm"
-                >
-                  <Sparkles className="w-3 h-3 text-amber-400 fill-amber-400 animate-pulse" />
-                  {badge}
-                </span>
-              ))}
+            {/* Signal Readiness Gauge */}
+            <div className="w-full md:w-64 p-4 rounded-2xl bg-zinc-950/80 border border-zinc-800 space-y-2.5 shrink-0 shadow-lg">
+              <div className="flex items-center justify-between text-xs font-mono">
+                <span className="text-zinc-400 font-bold uppercase text-[10px]">Signal Readiness</span>
+                <span className="text-purple-400 font-bold">{completeness}%</span>
+              </div>
+              <div className="w-full h-2 rounded-full bg-zinc-900 overflow-hidden">
+                <div
+                  className={`h-full bg-gradient-to-r ${signalQuality.barGradient} transition-all duration-500`}
+                  style={{ width: `${completeness}%` }}
+                />
+              </div>
+              <p className="text-[10px] font-mono text-zinc-400 leading-tight">
+                {signalQuality.description}
+              </p>
             </div>
           </div>
-        )}
 
-        {/* Tab Switcher */}
-        <div className="flex items-center gap-2 pt-2 border-t border-zinc-800/60">
-          <button
-            onClick={() => setActiveTab("profile")}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
-              activeTab === "profile"
-                ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            Personal & Intelligence Vector
-          </button>
-          <button
-            onClick={() => setActiveTab("settings")}
-            className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer ${
-              activeTab === "settings"
-                ? "bg-purple-600 text-white shadow-md shadow-purple-600/20"
-                : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
-            }`}
-          >
-            Account & Security Settings
-          </button>
+          {/* Navigation Tab Switcher */}
+          <div className="flex items-center gap-2 pt-3 border-t border-zinc-800/70">
+            <button
+              onClick={() => setActiveTab("personalization")}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === "personalization"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/25"
+                  : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Sliders className="w-3.5 h-3.5" />
+              <span>Personalization Signals</span>
+            </button>
+
+            <button
+              onClick={() => setActiveTab("security")}
+              className={`px-4 py-2 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                activeTab === "security"
+                  ? "bg-purple-600 text-white shadow-md shadow-purple-600/25"
+                  : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+              }`}
+            >
+              <Lock className="w-3.5 h-3.5" />
+              <span>Account & Security</span>
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* TAB 1: PERSONAL & INTELLIGENCE VECTOR */}
-      {activeTab === "profile" && (
+      {/* TAB 1: PERSONALIZATION SIGNALS & RELEVANCE ENGINE CONTROLS */}
+      {activeTab === "personalization" && (
         <div className="space-y-8">
-          {/* Missing Fields Banner */}
-          {missingFields.length > 0 && (
-            <div className="p-5 rounded-3xl bg-amber-500/8 border border-amber-500/25 space-y-3">
-              <div className="flex items-center gap-2 text-xs font-bold text-amber-400">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                <span>Recommended Profile Enhancements</span>
+          {/* 2. PROFILE SIGNALS & RECOMMENDATION BRIDGE */}
+          <div className="p-6 rounded-3xl bg-zinc-950/90 border border-zinc-800/80 space-y-5 shadow-xl">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-xs font-mono uppercase font-bold text-purple-400 tracking-wider">
+                  <Zap className="w-4 h-4" />
+                  <span>Your Profile Signals Status</span>
+                </div>
+                <p className="text-xs text-zinc-400 font-light">
+                  These 4 active signal vectors directly calibrate the SOIP deterministic match scoring engine.
+                </p>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                {missingFields.map((mf, i) => (
-                  <div key={i} className="p-2.5 rounded-xl bg-zinc-950/80 border border-zinc-800 text-zinc-300 flex items-start gap-2">
-                    <span className="text-amber-400 font-bold">+</span>
-                    <div>
+
+              {/* Direct CTA to Discover / For You */}
+              <Link
+                href="/opportunities"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600/20 hover:bg-indigo-600/30 border border-indigo-500/30 text-indigo-300 font-mono text-xs font-bold transition-all cursor-pointer shrink-0"
+              >
+                <Compass className="w-3.5 h-3.5" />
+                <span>See Your Recommendations</span>
+                <ArrowRight className="w-3 h-3 text-indigo-400" />
+              </Link>
+            </div>
+
+            {/* Signal Metrics Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs font-mono">
+              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-zinc-500 uppercase font-bold">Skills Vector</span>
+                  <Sparkles className="w-3.5 h-3.5 text-purple-400" />
+                </div>
+                <div className="text-base font-bold text-zinc-100">
+                  {selectedSkills.length} Verified
+                </div>
+                <span className="text-[10px] text-zinc-400 block">Up to 50% match score</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-zinc-500 uppercase font-bold">Domain Interests</span>
+                  <Target className="w-3.5 h-3.5 text-emerald-400" />
+                </div>
+                <div className="text-base font-bold text-zinc-100">
+                  {selectedInterests.length} Active
+                </div>
+                <span className="text-[10px] text-zinc-400 block">Ranks event formats</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-zinc-500 uppercase font-bold">Academic Eligibility</span>
+                  <GraduationCap className="w-3.5 h-3.5 text-indigo-400" />
+                </div>
+                <div className="text-base font-bold text-zinc-100">
+                  Year {yearOfStudy}
+                </div>
+                <span className="text-[10px] text-zinc-400 truncate block">{department}</span>
+              </div>
+
+              <div className="p-4 rounded-2xl bg-zinc-900/60 border border-zinc-800 space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] text-zinc-500 uppercase font-bold">Signal Precision</span>
+                  <Layers className="w-3.5 h-3.5 text-amber-400" />
+                </div>
+                <div className="text-base font-bold text-zinc-100">
+                  {completeness >= 85 ? "Optimal" : completeness >= 60 ? "Strong" : "Basic"}
+                </div>
+                <span className="text-[10px] text-zinc-400 block">{completeness}% coverage</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3. MISSING SIGNALS & ACTIONABLE COMPLETION BANNER */}
+          {missingSignals.length > 0 && (
+            <div className="p-5 sm:p-6 rounded-3xl bg-amber-500/8 border border-amber-500/25 space-y-4">
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-400 font-mono">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>Actionable Signals Needed to Maximize Match Precision</span>
+                </div>
+                <span className="text-[11px] font-mono text-zinc-400">
+                  {missingSignals.length} enhancement{missingSignals.length === 1 ? "" : "s"} remaining
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                {missingSignals.map((mf, i) => (
+                  <div
+                    key={i}
+                    className="p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800/80 text-zinc-300 flex items-start gap-2.5 shadow-sm"
+                  >
+                    <span className="text-amber-400 font-bold text-sm shrink-0">+</span>
+                    <div className="space-y-0.5">
                       <span className="font-bold text-zinc-200 block">{mf.label}</span>
-                      <span className="text-[11px] text-zinc-400 font-light">{mf.tip}</span>
+                      <span className="text-[11px] text-zinc-400 font-light leading-relaxed block">
+                        {mf.impact}
+                      </span>
                     </div>
                   </div>
                 ))}
@@ -319,7 +512,14 @@ export default function StudentProfileSettingsClient({
             </div>
           )}
 
-          {/* Profile Form Feedback */}
+          {/* Feedback Messages */}
+          {validationError && (
+            <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center gap-3 text-xs text-red-400 font-mono">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{validationError}</span>
+            </div>
+          )}
+
           {profileState.error && (
             <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center gap-3 text-xs text-red-400 font-mono">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -334,23 +534,34 @@ export default function StudentProfileSettingsClient({
             </div>
           )}
 
-          <form action={profileFormAction} className="space-y-8">
+          {/* 4. MAIN EDITABLE PERSONALIZATION FORM */}
+          <form action={profileFormAction} onSubmit={handleFormSubmit} className="space-y-8">
             <input type="hidden" name="skillsJson" value={JSON.stringify(selectedSkills)} />
             <input type="hidden" name="interestsJson" value={JSON.stringify(selectedInterests)} />
 
-            {/* 1. Academic Credentials */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-6">
-              <h2 className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
-                <User className="w-4 h-4" /> 1. Academic Identity
-              </h2>
+            {/* SECTION 1: ACADEMIC IDENTITY & ELIGIBILITY VECTOR */}
+            <div
+              id="field-academic"
+              className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-6"
+            >
+              <div className="space-y-1">
+                <h2 className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                  <User className="w-4 h-4" /> 1. Academic Identity & Eligibility Parameters
+                </h2>
+                <p className="text-xs text-zinc-400 font-light">
+                  Your department and year determine eligibility criteria for campus hackathons, research fellowships, and recruitment drives.
+                </p>
+              </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <Field label="Full Name" required>
                   <input
+                    id="field-fullName"
                     type="text"
                     name="fullName"
                     required
-                    defaultValue={profile?.fullName || ""}
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
                     placeholder="e.g. Aditi Sharma"
                     className={INPUT_CLASS}
                   />
@@ -358,9 +569,11 @@ export default function StudentProfileSettingsClient({
 
                 <Field label="SRM Register Number">
                   <input
+                    id="field-registerNumber"
                     type="text"
                     name="registerNumber"
-                    defaultValue={profile?.registerNumber || ""}
+                    value={registerNumber}
+                    onChange={(e) => setRegisterNumber(e.target.value.toUpperCase())}
                     placeholder="e.g. RA2111003010123"
                     className={`${INPUT_CLASS} uppercase`}
                   />
@@ -368,8 +581,10 @@ export default function StudentProfileSettingsClient({
 
                 <Field label="Academic Department">
                   <select
+                    id="field-department"
                     name="department"
-                    defaultValue={profile?.department || DEPARTMENTS[0]}
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
                     className={INPUT_CLASS}
                   >
                     {DEPARTMENTS.map((dept) => (
@@ -382,86 +597,153 @@ export default function StudentProfileSettingsClient({
 
                 <Field label="Year of Study">
                   <select
+                    id="field-yearOfStudy"
                     name="yearOfStudy"
-                    defaultValue={profile?.yearOfStudy?.toString() || "3"}
+                    value={yearOfStudy}
+                    onChange={(e) => setYearOfStudy(parseInt(e.target.value, 10))}
                     className={INPUT_CLASS}
                   >
-                    <option value="1">Year 1 (Freshman)</option>
-                    <option value="2">Year 2 (Sophomore)</option>
-                    <option value="3">Year 3 (Junior)</option>
-                    <option value="4">Year 4 (Senior)</option>
-                    <option value="5">Year 5 / PG</option>
+                    <option value={1}>Year 1 (Freshman)</option>
+                    <option value={2}>Year 2 (Sophomore)</option>
+                    <option value={3}>Year 3 (Junior)</option>
+                    <option value={4}>Year 4 (Senior)</option>
+                    <option value={5}>Year 5 / PG / Dual Degree</option>
                   </select>
                 </Field>
               </div>
             </div>
 
-            {/* 2. Interactive Skills Matrix */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-6">
+            {/* SECTION 2: TECHNICAL SKILL MATRIX */}
+            <div
+              id="field-skills"
+              className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-6"
+            >
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <h2 className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
-                  <Sparkles className="w-4 h-4" /> 2. Technical Skill Matrix ({selectedSkills.length} selected)
-                </h2>
+                <div className="space-y-1">
+                  <h2 className="text-xs font-mono font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-2">
+                    <Sparkles className="w-4 h-4" /> 2. Technical Skill Matrix ({selectedSkills.length} active)
+                  </h2>
+                  <p className="text-xs text-zinc-400 font-light">
+                    Skill vectors carry up to 50% weighting in opportunity relevance calculation. Select or add tools you actively know.
+                  </p>
+                </div>
               </div>
-              <p className="text-xs text-zinc-400 font-light">
-                Select your technical languages, frameworks, and tools to match opportunity requirements.
-              </p>
 
-              <div className="space-y-3">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <input
-                    type="text"
-                    value={skillSearch}
-                    onChange={(e) => setSkillSearch(e.target.value)}
-                    placeholder="Search taxonomy..."
-                    className={`${INPUT_CLASS} py-2 max-w-xs`}
-                  />
-                  <div className="flex items-center gap-1.5 flex-1 max-w-xs">
+              {/* Active Selected Skills Tags */}
+              <div className="space-y-2">
+                <span className="text-[10px] font-mono uppercase font-bold text-zinc-400 tracking-wider block">
+                  Your Active Skills ({selectedSkills.length})
+                </span>
+                {selectedSkills.length === 0 ? (
+                  <div className="p-4 rounded-2xl bg-zinc-950/60 border border-dashed border-zinc-800 text-center text-xs text-zinc-500 font-mono">
+                    No skills added yet. Choose from the taxonomy below or type a custom skill.
+                  </div>
+                ) : (
+                  <div className="flex flex-wrap gap-2 p-3.5 rounded-2xl bg-zinc-950 border border-zinc-800/90 min-h-[50px] items-center">
+                    {selectedSkills.map((skill) => (
+                      <span
+                        key={skill}
+                        className="px-3 py-1.5 rounded-xl text-xs font-mono bg-purple-600/20 text-purple-200 border border-purple-500/30 flex items-center gap-2 shadow-sm"
+                      >
+                        <span>{skill}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeSkill(skill)}
+                          className="hover:text-red-400 transition-colors cursor-pointer"
+                          aria-label={`Remove skill ${skill}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Search & Custom Skill Adder */}
+              <div className="space-y-3 pt-2">
+                <div className="flex items-center gap-3 flex-wrap">
+                  <div className="relative flex-1 min-w-[200px]">
+                    <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                    <input
+                      type="text"
+                      value={skillSearch}
+                      onChange={(e) => setSkillSearch(e.target.value)}
+                      placeholder="Search skill taxonomy..."
+                      className={`${INPUT_CLASS} pl-9 py-2.5 text-xs`}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-2 flex-1 min-w-[220px]">
                     <input
                       type="text"
                       value={customSkillInput}
                       onChange={(e) => setCustomSkillInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          addCustomSkill();
+                        }
+                      }}
                       placeholder="Add custom skill..."
-                      className={`${INPUT_CLASS} py-2`}
+                      className={`${INPUT_CLASS} py-2.5 text-xs`}
                     />
                     <button
                       type="button"
                       onClick={addCustomSkill}
-                      className="px-3 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs cursor-pointer shrink-0"
+                      className="px-4 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-mono text-xs font-semibold cursor-pointer shrink-0 transition-all shadow-md shadow-purple-600/20"
                     >
                       + Add
                     </button>
                   </div>
                 </div>
 
-                <div className="flex flex-wrap gap-2 max-h-52 overflow-y-auto p-4 rounded-2xl bg-zinc-950 border border-zinc-800">
-                  {filteredSkills.map((skill) => {
-                    const isSelected = selectedSkills.includes(skill);
-                    return (
-                      <button
-                        type="button"
-                        key={skill}
-                        onClick={() => toggleSkill(skill)}
-                        className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
-                          isSelected
-                            ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-600/20"
-                            : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
-                        }`}
-                      >
-                        <span>{skill}</span>
-                        {isSelected ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5 text-zinc-500" />}
-                      </button>
-                    );
-                  })}
+                {/* Taxonomy Chips Picker */}
+                <div className="space-y-2">
+                  <span className="text-[10px] font-mono uppercase font-bold text-zinc-500 tracking-wider block">
+                    Supported Taxonomy Suggestions
+                  </span>
+                  <div className="flex flex-wrap gap-2 max-h-48 overflow-y-auto p-3.5 rounded-2xl bg-zinc-950/80 border border-zinc-800">
+                    {filteredTaxonomy.map((skill) => {
+                      const isSelected = selectedSkills.includes(skill);
+                      return (
+                        <button
+                          type="button"
+                          key={skill}
+                          onClick={() => toggleSkill(skill)}
+                          className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                            isSelected
+                              ? "bg-purple-600 text-white font-bold shadow-md shadow-purple-600/20"
+                              : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
+                          }`}
+                        >
+                          <span>{skill}</span>
+                          {isSelected ? (
+                            <Check className="w-3 h-3 text-purple-200" />
+                          ) : (
+                            <Plus className="w-3 h-3 text-zinc-500" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
 
-            {/* 3. Opportunity Interests */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-6">
-              <h2 className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
-                <Target className="w-4 h-4" /> 3. Opportunity Interests ({selectedInterests.length} selected)
-              </h2>
+            {/* SECTION 3: OPPORTUNITY INTERESTS */}
+            <div
+              id="field-interests"
+              className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-6"
+            >
+              <div className="space-y-1">
+                <h2 className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
+                  <Target className="w-4 h-4" /> 3. Opportunity Interests & Preferred Formats ({selectedInterests.length} selected)
+                </h2>
+                <p className="text-xs text-zinc-400 font-light">
+                  Interests prioritize event categories (Hackathons, Internships, Research, Workshops) in your feed.
+                </p>
+              </div>
 
               <div className="flex flex-wrap gap-2 p-4 rounded-2xl bg-zinc-950 border border-zinc-800">
                 {INTEREST_TAXONOMY.map((interest) => {
@@ -471,76 +753,128 @@ export default function StudentProfileSettingsClient({
                       type="button"
                       key={interest}
                       onClick={() => toggleInterest(interest)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
+                      className={`px-3.5 py-1.5 rounded-xl text-xs font-mono transition-all cursor-pointer flex items-center gap-1.5 ${
                         isSelected
                           ? "bg-emerald-600 text-white font-bold shadow-md shadow-emerald-600/20"
                           : "bg-zinc-900 border border-zinc-800 text-zinc-400 hover:text-zinc-200"
                       }`}
                     >
                       <span>{interest}</span>
-                      {isSelected ? <X className="w-3.5 h-3.5" /> : <Plus className="w-3.5 h-3.5 text-zinc-500" />}
+                      {isSelected ? (
+                        <Check className="w-3 h-3 text-emerald-200" />
+                      ) : (
+                        <Plus className="w-3 h-3 text-zinc-500" />
+                      )}
                     </button>
                   );
                 })}
               </div>
             </div>
 
-            {/* 4. Career Goals */}
-            <div className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-4">
-              <h2 className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider">
-                4. Target Roles & Career Goals
-              </h2>
+            {/* SECTION 4: CAREER GOALS & TARGET ROLES */}
+            <div
+              id="field-careerGoals"
+              className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-4"
+            >
+              <div className="space-y-1">
+                <h2 className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                  <FileCode2 className="w-4 h-4 text-purple-400" /> 4. Target Roles & Career Objectives
+                </h2>
+                <p className="text-xs text-zinc-400 font-light">
+                  Synthesizes AI opportunity briefs and personalized suitability explanations.
+                </p>
+              </div>
+
               <textarea
                 name="careerGoals"
                 rows={3}
-                defaultValue={profile?.careerGoals || ""}
-                placeholder="e.g. Seeking Full-Stack SDE roles, AI research fellowships, or competitive hackathon teams..."
+                value={careerGoals}
+                onChange={(e) => setCareerGoals(e.target.value)}
+                placeholder="e.g. Seeking Full-Stack SDE internships, AI research fellowships in LLM agents, or competitive national hackathon teams..."
                 className={INPUT_CLASS}
               />
             </div>
 
-            {/* Save Vector Action */}
-            <div className="flex justify-end">
-              <button
-                type="submit"
-                disabled={isProfilePending}
-                className="px-6 py-3 rounded-2xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-lg shadow-purple-600/25 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
-              >
-                {isProfilePending ? (
-                  <span>Updating Vector...</span>
+            {/* SAVE / DISCARD CONTROLS BAR */}
+            <div className="sticky bottom-6 z-30 p-4 sm:p-5 rounded-2xl bg-zinc-950/90 border border-zinc-800 shadow-2xl backdrop-blur-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="flex items-center gap-2 text-xs font-mono text-zinc-400">
+                {isDirty ? (
+                  <span className="flex items-center gap-1.5 text-amber-400 font-bold">
+                    <AlertCircle className="w-4 h-4" />
+                    <span>You have unsaved changes.</span>
+                  </span>
                 ) : (
-                  <>
+                  <span className="flex items-center gap-1.5 text-emerald-400">
                     <CheckCircle2 className="w-4 h-4" />
-                    <span>Save Profile Vector</span>
-                  </>
+                    <span>All personalization signals synchronized.</span>
+                  </span>
                 )}
-              </button>
+              </div>
+
+              <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+                {isDirty && (
+                  <button
+                    type="button"
+                    onClick={handleDiscardChanges}
+                    className="px-4 py-2.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-300 font-mono text-xs transition-all cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5 text-zinc-500" />
+                    <span>Discard</span>
+                  </button>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={isProfilePending}
+                  className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-lg shadow-purple-600/25 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                >
+                  {isProfilePending ? (
+                    <>
+                      <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                      <span>Saving Signals...</span>
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="w-4 h-4" />
+                      <span>Save Personalization Signals</span>
+                    </>
+                  )}
+                </button>
+              </div>
             </div>
           </form>
 
-          {/* Profile -> Intelligence Connection Explainer */}
+          {/* 5. PERSONALIZATION ENGINE PIPELINE EXPLAINER */}
           <div className="p-6 sm:p-8 rounded-3xl bg-zinc-950 border border-zinc-800/80 space-y-4 text-xs font-mono">
-            <div className="flex items-center gap-2 text-purple-400 font-bold uppercase">
-              <Zap className="w-4 h-4 text-purple-400" />
-              <span>How Your Profile Powers Opportunity Intelligence</span>
+            <div className="flex items-center gap-2 text-purple-400 font-bold uppercase tracking-wider">
+              <Info className="w-4 h-4" />
+              <span>How Your Signals Power the Relevance Engine</span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-center">
-              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1">
-                <span className="text-[10px] text-zinc-500 block">STEP 1</span>
-                <span className="font-bold text-zinc-200">Profile Vector</span>
+            <p className="text-zinc-400 font-light leading-relaxed">
+              Your profile serves as the deterministic vector calibrated against published campus opportunities. Matches are calculated transparently without black-box alterations.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-center pt-2">
+              <div className="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-1">
+                <span className="text-[10px] text-zinc-500 block">VECTOR 1 (50%)</span>
+                <span className="font-bold text-indigo-400 block">Technical Skills</span>
+                <span className="text-[10px] text-zinc-400 font-light">Direct prerequisite overlap</span>
               </div>
-              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1">
-                <span className="text-[10px] text-zinc-500 block">STEP 2</span>
-                <span className="font-bold text-indigo-400">Skills + Dept + Year</span>
+              <div className="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-1">
+                <span className="text-[10px] text-zinc-500 block">VECTOR 2 (20%)</span>
+                <span className="font-bold text-purple-400 block">Department</span>
+                <span className="text-[10px] text-zinc-400 font-light">Academic eligibility gate</span>
               </div>
-              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1">
-                <span className="text-[10px] text-zinc-500 block">STEP 3</span>
-                <span className="font-bold text-purple-400">Match Scoring Engine</span>
+              <div className="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-1">
+                <span className="text-[10px] text-zinc-500 block">VECTOR 3 (15%)</span>
+                <span className="font-bold text-emerald-400 block">Year of Study</span>
+                <span className="text-[10px] text-zinc-400 font-light">Batch-specific suitability</span>
               </div>
-              <div className="p-3 rounded-xl bg-zinc-900 border border-zinc-800 space-y-1">
-                <span className="text-[10px] text-zinc-500 block">STEP 4</span>
-                <span className="font-bold text-emerald-400">Prioritized Feed</span>
+              <div className="p-3.5 rounded-2xl bg-zinc-900 border border-zinc-800 space-y-1">
+                <span className="text-[10px] text-zinc-500 block">VECTOR 4 (15%)</span>
+                <span className="font-bold text-amber-400 block">Interests & Urgency</span>
+                <span className="text-[10px] text-zinc-400 font-light">Format affinity & deadline</span>
               </div>
             </div>
           </div>
@@ -548,9 +882,9 @@ export default function StudentProfileSettingsClient({
       )}
 
       {/* TAB 2: ACCOUNT & SECURITY SETTINGS */}
-      {activeTab === "settings" && (
+      {activeTab === "security" && (
         <div className="space-y-8">
-          {/* Account Security Feedback */}
+          {/* Feedback messages */}
           {passwordState.error && (
             <div className="p-4 rounded-2xl bg-red-500/10 border border-red-500/25 flex items-center gap-3 text-xs text-red-400 font-mono">
               <AlertCircle className="w-4 h-4 shrink-0" />
@@ -567,9 +901,14 @@ export default function StudentProfileSettingsClient({
 
           {/* Change Password Card */}
           <div className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-6">
-            <h2 className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
-              <Lock className="w-4 h-4" /> Password & Security
-            </h2>
+            <div className="space-y-1">
+              <h2 className="text-xs font-mono font-bold text-purple-400 uppercase tracking-wider flex items-center gap-2">
+                <KeyRound className="w-4 h-4" /> Password & Security
+              </h2>
+              <p className="text-xs text-zinc-400 font-light">
+                Update your account credentials. Must be at least 6 characters in length.
+              </p>
+            </div>
 
             <form action={passwordFormAction} className="space-y-4 max-w-md">
               <Field label="New Password" required>
@@ -595,7 +934,7 @@ export default function StudentProfileSettingsClient({
               <button
                 type="submit"
                 disabled={isPasswordPending}
-                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-md shadow-purple-600/20 transition-all cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs shadow-md shadow-purple-600/20 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
               >
                 {isPasswordPending ? "Updating Password..." : "Update Password"}
               </button>
@@ -604,19 +943,22 @@ export default function StudentProfileSettingsClient({
 
           {/* Session & Sign Out Card */}
           <div className="p-6 sm:p-8 rounded-3xl bg-zinc-900/70 border border-zinc-800/80 shadow-2xl space-y-4">
-            <h2 className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
-              <LogOut className="w-4 h-4 text-red-400" /> Account Session
-            </h2>
-            <p className="text-xs text-zinc-400 font-light">
-              End your active session on this browser. You can log back in at any time.
-            </p>
+            <div className="space-y-1">
+              <h2 className="text-xs font-mono font-bold text-zinc-300 uppercase tracking-wider flex items-center gap-2">
+                <LogOut className="w-4 h-4 text-red-400" /> Active Session & Authentication
+              </h2>
+              <p className="text-xs text-zinc-400 font-light">
+                Authenticated as <strong className="text-zinc-200">{userEmail || "SRM Student"}</strong>. End your active session on this device securely.
+              </p>
+            </div>
 
             <form action={signOutAction}>
               <button
                 type="submit"
-                className="px-5 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 font-mono text-xs font-bold transition-all cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/25 text-red-400 font-mono text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-2"
               >
-                Sign Out of Account
+                <LogOut className="w-3.5 h-3.5" />
+                <span>Sign Out of Account</span>
               </button>
             </form>
           </div>
@@ -629,7 +971,15 @@ export default function StudentProfileSettingsClient({
 const INPUT_CLASS =
   "w-full px-4 py-3 text-xs rounded-2xl bg-zinc-950 border border-zinc-800 text-zinc-100 placeholder:text-zinc-600 focus:outline-none focus:ring-2 focus:ring-purple-500/40 focus:border-purple-500/40 transition-all font-mono";
 
-function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) {
+function Field({
+  label,
+  required,
+  children,
+}: {
+  label: string;
+  required?: boolean;
+  children: React.ReactNode;
+}) {
   return (
     <div className="space-y-1.5">
       <label className="text-xs font-mono uppercase text-zinc-300 font-bold block">
