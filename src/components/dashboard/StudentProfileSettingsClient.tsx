@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useActionState, useEffect, useState, useMemo, useTransition } from "react";
+import React, { useActionState, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
-import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import {
   updateStudentProfileAction,
   updateStudentPasswordAction,
